@@ -1,0 +1,27 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Environment — NEVER commit real keys
+.env.local
+.env.*.local
+
+# Build
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs — overwritten on each startup, never commit
+logs/
