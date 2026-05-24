@@ -159,3 +159,62 @@ Lip-sync intégré dans Avatar.tsx → useFrame :
   3. Proxy sphère : mesh.scale.y *= 1 + jaw * 2.5 (squash vertical).
   Lorsque l'avatar GLB réel sera chargé, remplacer par :
     mesh.morphTargetInfluences['jawOpen'] = Math.min(jaw * 2.5, 1)
+
+[ÉTAPE 13] Préférences persistantes & panneau Settings
+--------------------------------------------------------
+src/store/useSettingsStore.ts : store Zustand avec persist middleware
+  (localStorage key "jarvis-settings").
+  Préférence : ttsEnabled (activer / désactiver ElevenLabs TTS).
+src/components/ui/SettingsPanel.tsx :
+  Bouton engrenage à droite de la barre de saisie.
+  Panneau flottant avec composant Toggle (pill switch).
+  Fermeture automatique sur clic extérieur (mousedown listener).
+src/hooks/useJarvis.ts : vérifie ttsEnabled avant d'appeler fetchTTS —
+  si désactivé, la réponse est affichée sans synthèse vocale.
+
+[ÉTAPE 14] Logger serveur & nettoyage au démarrage
+---------------------------------------------------
+src/lib/logger.ts : logger Node.js côté serveur.
+  Format : [ISO timestamp] LEVEL [context]  message  {data}
+  Écrit dans logs/app.log + console. Silencieux en cas d'erreur FS.
+src/instrumentation.ts : hook Next.js register().
+  Réinitialise logs/app.log à chaque démarrage du serveur (garde l'en-tête).
+  Garde NEXT_RUNTIME === 'nodejs' pour ne pas s'exécuter dans Edge runtime.
+  Création du répertoire logs/ si absent.
+Logs ajoutés sur /api/chat (→ REQUEST, ← AVATAR_COMPLETE, ✓ done, ✗ error)
+  et /api/tts (→ REQUEST, ✓ streaming audio, ✗ error).
+logs/ ajouté au .gitignore — fichiers de logs jamais commités.
+
+[ÉTAPE 15] Page de test interactive (/test)
+--------------------------------------------
+src/app/test/page.tsx : page dédiée au débogage et aux tests de l'API.
+  - Textarea + Ctrl+Enter pour envoyer un prompt.
+  - Affiche le texte en streaming en temps réel.
+  - Badges colorés pour animation et émotion.
+  - Bloc texte dédié à la réponse Jarvis.
+  - Accordéon "JSON brut" pour voir l'AvatarResponse complet.
+  Accessible à http://localhost:3000/test.
+
+[ÉTAPE 16] Correctif SSR & SceneWrapper
+-----------------------------------------
+src/components/ui/SceneWrapper.tsx : composant 'use client' qui encapsule
+  dynamic(() => import('./Experience'), { ssr: false }).
+  Nécessaire car Next.js 15 App Router interdit ssr:false dans les
+  Server Components. page.tsx (Server Component) importe SceneWrapper
+  au lieu d'appeler dynamic() directement.
+
+[ÉTAPE 17] Zone de réponse permanente & mise en page du HUD
+-------------------------------------------------------------
+src/components/ui/ChatOverlay.tsx :
+  Remplacement de ResponseBubble (conditionnel, disparaît si vide) par
+  ResponseDisplay (toujours visible, hauteur minimale garantie).
+  États affichés :
+    - Placeholder "La réponse de Jarvis apparaîtra ici…" (text absent)
+    - Spinner "En réflexion…" (isThinking && !streamingText)
+    - Texte streamé en temps réel (streamingText)
+    - Dernière réponse conservée après la fin du stream
+  Correction du bug d'affichage : lastAssistantText lit désormais
+  turn.avatarResponse?.text en priorité (turn.content peut être vide
+  si les text_delta n'ont pas été reçus).
+  Réorganisation du HUD : champ de saisie au-dessus du placeholder
+  (InputBar → ErrorBanner → ResponseDisplay, en flex-col justify-end).

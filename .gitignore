@@ -22,3 +22,6 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Logs — overwritten on each startup, never commit
+logs/

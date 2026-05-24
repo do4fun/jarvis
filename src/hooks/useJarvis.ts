@@ -5,6 +5,7 @@ import { useChat } from './useChat'
 import { useAudio } from './useAudio'
 import { fetchTTS } from '@/services/elevenlabs'
 import { useAvatarStore } from '@/store/useAvatarStore'
+import { useSettingsStore } from '@/store/useSettingsStore'
 import type { AvatarResponse } from '@/types/avatar'
 import type { AudioController } from './useAudio'
 
@@ -18,27 +19,28 @@ export interface JarvisController {
 
 export function useJarvis(): JarvisController {
   const { play, stop, analyserNode } = useAudio()
-  const { setSpeaking } = useAvatarStore()
+  const { setSpeaking }  = useAvatarStore()
+  const { ttsEnabled }   = useSettingsStore()
 
   const handleAvatarComplete = useCallback(
     async (response: AvatarResponse) => {
+      if (!ttsEnabled) return // TTS désactivé dans les préférences
+
       try {
         const buffer = await fetchTTS(response.text)
         await play(buffer)
       } catch (err) {
-        // TTS failed — avatar should not stay stuck in isSpeaking
         console.error('[useJarvis] TTS error:', err)
         setSpeaking(false)
       }
     },
-    [play, setSpeaking],
+    [play, setSpeaking, ttsEnabled],
   )
 
   const { sendMessage } = useChat({ onAvatarComplete: handleAvatarComplete })
 
   const stopSpeaking = useCallback(() => {
     stop()
-    // Return avatar to idle posture
     useAvatarStore.getState().reset()
   }, [stop])
 

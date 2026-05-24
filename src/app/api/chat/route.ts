@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server'
 import { anthropic, avatarTool, SYSTEM_PROMPT } from '@/lib/anthropic'
+import { logger } from '@/lib/logger'
 import type { AvatarResponse } from '@/types/avatar'
 import type { ChatRequest, SSEEvent } from '@/types/api'
 
+const CTX = '/api/chat'
+
 // ── Text field streaming extractor ────────────────────────────────────────────
-//
-// As Claude streams the tool's input_json_delta, the JSON is built up
-// incrementally: {"text":"Bon...jour !","animation":...}
-// This class extracts the "text" field value character-by-character so the
-// frontend can render words as they arrive — before the full JSON is complete.
 
 class TextFieldExtractor {
   private buf = ''
@@ -30,15 +28,12 @@ class TextFieldExtractor {
     let out = ''
     while (this.ptr < this.buf.length) {
       const ch = this.buf[this.ptr]
-
       if (ch === '\\') {
-        // Need the next char to decode the escape sequence
-        if (this.ptr + 1 >= this.buf.length) break // wait for next chunk
+        if (this.ptr + 1 >= this.buf.length) break
         const esc = this.buf[this.ptr + 1]
         out += esc === 'n' ? '\n' : esc === 't' ? '\t' : esc === 'r' ? '\r' : esc
         this.ptr += 2
       } else if (ch === '"') {
-        // Unescaped closing quote — text field is complete
         this.phase = 'done'
         this.ptr++
         break
@@ -47,7 +42,6 @@ class TextFieldExtractor {
         this.ptr++
       }
     }
-
     return out
   }
 }
@@ -67,14 +61,17 @@ export async function POST(req: NextRequest) {
   }
 
   const messages: { role: 'user' | 'assistant'; content: string }[] = [
-    ...(body.history ?? []).map(turn => ({
-      role: turn.role,
-      content: turn.content,
-    })),
+    ...(body.history ?? []).map(turn => ({ role: turn.role, content: turn.content })),
     { role: 'user', content: body.message },
   ]
 
+  logger.info(CTX, '→ REQUEST', {
+    message:  body.message.slice(0, 120),
+    history:  (body.history ?? []).length,
+  })
+
   const encoder = new TextEncoder()
+  const startMs = Date.now()
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -88,13 +85,13 @@ export async function POST(req: NextRequest) {
           max_tokens: 1024,
           system: SYSTEM_PROMPT,
           tools: [avatarTool],
-          // Force Claude to always call our tool — no plain-text fallback
           tool_choice: { type: 'any' },
           messages,
         })
 
-        const extractor = new TextFieldExtractor()
-        let jsonBuffer = ''
+        const extractor  = new TextFieldExtractor()
+        let   jsonBuffer = ''
+        let   deltaCount = 0
 
         for await (const event of anthropicStream) {
           if (
@@ -103,26 +100,34 @@ export async function POST(req: NextRequest) {
           ) {
             const delta = event.delta.partial_json
             jsonBuffer += delta
+            deltaCount++
 
             const textChunk = extractor.feed(delta)
-            if (textChunk) {
-              emit({ type: 'text_delta', content: textChunk })
-            }
+            if (textChunk) emit({ type: 'text_delta', content: textChunk })
           }
         }
 
-        if (!jsonBuffer) {
-          throw new Error('Claude returned an empty tool input.')
-        }
+        if (!jsonBuffer) throw new Error('Claude returned an empty tool input.')
 
         const avatarResponse = JSON.parse(jsonBuffer) as AvatarResponse
+
+        logger.info(CTX, '← AVATAR_COMPLETE', {
+          animation: avatarResponse.animation.name,
+          emotion:   avatarResponse.emotion,
+          text:      avatarResponse.text.slice(0, 120),
+          environment: avatarResponse.environment ?? null,
+          deltas:    deltaCount,
+          ms:        Date.now() - startMs,
+        })
+
         emit({ type: 'avatar_complete', response: avatarResponse })
         emit({ type: 'done' })
+
+        logger.info(CTX, `✓ done in ${Date.now() - startMs}ms`)
       } catch (err) {
-        emit({
-          type: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        })
+        const message = err instanceof Error ? err.message : String(err)
+        logger.error(CTX, '✗ stream error', { message })
+        emit({ type: 'error', message })
       } finally {
         controller.close()
       }
@@ -133,8 +138,7 @@ export async function POST(req: NextRequest) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      // Prevents nginx / Vercel edge from buffering the stream
+      Connection:      'keep-alive',
       'X-Accel-Buffering': 'no',
     },
   })
