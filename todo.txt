@@ -1,0 +1,104 @@
+JARVIS — Étapes restantes à implémenter
+========================================
+
+[TODO 1] Intégration du modèle GLB/GLTF réel
+----------------------------------------------
+Priorité : HAUTE
+Remplacer la sphère placeholder par un avatar humanoïde riggé.
+  - Importer useGLTF de @react-three/drei pour charger /public/models/avatar.glb
+  - Remplacer <mesh ref={meshRef}> par <primitive object={gltf.scene} ref={meshRef}>
+  - Extraire les clips d'animation depuis gltf.animations
+  - Créer un AnimationMixer et mapper les clips aux AnimationName du store
+    (idle, talking, nodding, thinking, waving, surprised, shaking_head)
+  - Gérer le crossfade entre clips avec mixer.crossFadeTo()
+  - Appeler useGLTF.preload('/models/avatar.glb') pour précharger en avance
+Ressources recommandées : Ready Player Me (avatar gratuit, GLB exportable),
+Mixamo (rig + animations FBX → convertir en GLB via Blender).
+
+[TODO 2] Lip-sync par morph targets (jawOpen + visèmes)
+---------------------------------------------------------
+Priorité : HAUTE (dépend de TODO 1)
+Remplacer le proxy sphère scale.y par les vrais morph targets faciaux.
+  - Identifier le morph target jawOpen dans gltf.scene (morphTargetDictionary)
+  - Brancher l'amplitude de l'AnalyserNode sur morphTargetInfluences['jawOpen']
+    (code déjà préparé en commentaire dans Avatar.tsx)
+  - Optionnel : implémenter les visèmes (A, E, I, O, U) via les timestamps
+    ElevenLabs pour un lip-sync plus précis que l'analyse d'amplitude.
+    API ElevenLabs : /v1/text-to-speech/{id}/with-timestamps
+  - Brancher les EmotionName sur les morph targets d'expression correspondants
+    (smile, frown, browRaise, etc.) selon le rig de l'avatar choisi.
+
+[TODO 3] Expressions faciales via morph targets
+------------------------------------------------
+Priorité : MOYENNE (dépend de TODO 1)
+Connecter useAvatarStore.emotion aux morph targets d'expression du GLB.
+  - Créer un mapping EmotionName → { morphTarget: string, value: number }[]
+    par exemple : happy → [{ mouthSmile: 0.8 }, { cheekPuff: 0.2 }]
+  - Appliquer avec un lerp dans useFrame pour des transitions fluides
+  - Les noms de morph targets dépendent du rig choisi (Ready Player Me, etc.)
+
+[TODO 4] Saisie vocale (input microphone)
+------------------------------------------
+Priorité : MOYENNE
+Permettre à l'utilisateur de parler à Jarvis au lieu de taper.
+  Option A : Web Speech API (SpeechRecognition) — natif navigateur, gratuit,
+    supporte le français, mais qualité variable selon navigateur.
+  Option B : OpenAI Whisper via API — meilleure qualité, coûte ~$0.006/min.
+  - Ajouter un bouton microphone dans InputBar (icône Mic de lucide-react)
+  - Gérer les états : idle / listening / processing
+  - Envoyer la transcription à sendMessage()
+
+[TODO 5] Bouton d'interruption de l'audio
+-------------------------------------------
+Priorité : BASSE
+Permettre à l'utilisateur d'interrompre Jarvis pendant qu'il parle.
+  - Ajouter un bouton Stop visible uniquement quand isSpeaking est true
+  - Appeler useJarvis.stopSpeaking() au clic (interrompt l'audio + reset avatar)
+  - Optionnel : bouton "Interrompre et poser une nouvelle question"
+
+[TODO 6] Amélioration de l'interface utilisateur
+-------------------------------------------------
+Priorité : BASSE
+Polir l'expérience utilisateur de l'overlay minimal.
+  - Historique des messages scrollable (accessible via un toggle)
+  - Animation d'apparition du texte dans la bulle (fade-in par mot)
+  - Indicateur de niveau audio/microphone si saisie vocale activée
+  - Retour visuel sur l'état réseau (offline detection)
+  - Responsive : s'assurer que l'overlay fonctionne sur mobile
+
+[TODO 7] Animations de caméra
+------------------------------
+Priorité : BASSE
+Remplacer les OrbitControls de dev par une caméra cinématique pilotée.
+  - Zoom in léger quand Jarvis parle (isSpeaking)
+  - Zoom out pendant thinking
+  - Transition douce via useFrame + lerp sur camera.position
+  - Conserver OrbitControls uniquement en mode debug (env variable)
+
+[TODO 8] Transitions d'environnement
+--------------------------------------
+Priorité : BASSE
+Rendre les changements d'environment fluides plutôt qu'instantanés.
+  - Interpoler ambientIntensity et backgroundColor via useFrame + lerp
+  - Crossfade entre les presets HDR (peut nécessiter deux <Environment>
+    superposés avec opacity animée)
+
+[TODO 9] Optimisations de performance
+---------------------------------------
+Priorité : BASSE
+  - Compresser les textures du GLB avec KTX2 (Basis Universal)
+  - Activer le Draco compression sur la géométrie du GLB
+  - Utiliser InstancedMesh si plusieurs avatars
+  - Ajouter <Preload all /> de @react-three/drei pour précharger les assets
+  - Limiter le framerate à 30fps sur batterie (useFrame delta check)
+
+[TODO 10] Déploiement production
+----------------------------------
+Priorité : À PLANIFIER
+  - Configurer les variables d'environnement sur Vercel
+    (ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID)
+  - Vérifier les limites de streaming de Vercel (max 25s par route Edge)
+    → si dépassement, basculer les routes /api/chat et /api/tts en
+    Edge Runtime avec export const runtime = 'edge'
+  - Ajouter un rate limiting sur les routes API (ex: Upstash Redis)
+  - Mettre en place un système d'authentification si l'app doit être privée
