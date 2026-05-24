@@ -21,7 +21,7 @@ function ResponseDisplay({ text, thinking }: { text: string | null; thinking: bo
         ) : text ? (
           <span className="text-white">{text}</span>
         ) : (
-          <span className="text-white/20">La réponse de Jarvis apparaîtra ici…</span>
+          <span className="text-white/20">La réponse apparaîtra ici…</span>
         )}
       </div>
     </div>
@@ -36,9 +36,10 @@ interface InputBarProps {
   onSend: () => void
   disabled: boolean
   loading: boolean
+  characterName: string
 }
 
-function InputBar({ value, onChange, onSend, disabled, loading }: InputBarProps) {
+function InputBar({ value, onChange, onSend, disabled, loading, characterName }: InputBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -62,7 +63,7 @@ function InputBar({ value, onChange, onSend, disabled, loading }: InputBarProps)
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Parlez à Jarvis…"
+          placeholder={`Parlez à ${characterName}…`}
           disabled={disabled}
           autoComplete="off"
           className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30 disabled:opacity-40"
@@ -98,7 +99,7 @@ function ErrorBanner({ message }: { message: string }) {
 
 // ── ChatOverlay ───────────────────────────────────────────────────────────────
 
-export default function ChatOverlay() {
+export default function ChatOverlay({ characterName = 'Jarvis' }: { characterName?: string }) {
   const [input, setInput] = useState('')
 
   const { sendMessage }                          = useJarvis()
@@ -126,6 +127,7 @@ export default function ChatOverlay() {
           onSend={handleSend}
           disabled={isLoading}
           loading={isLoading}
+          characterName={characterName}
         />
       </div>
 
