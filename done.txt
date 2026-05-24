@@ -1,0 +1,161 @@
+JARVIS — Historique des étapes complétées
+==========================================
+
+[ÉTAPE 1] Structure du projet & configuration
+----------------------------------------------
+Initialisation d'un projet Next.js 15 (App Router) + TypeScript.
+Création de l'arborescence src/ avec séparation claire des responsabilités :
+  - src/app/          → routes Next.js (pages + API routes)
+  - src/components/   → composants React (canvas 3D + UI overlay)
+  - src/store/        → stores Zustand
+  - src/hooks/        → hooks React personnalisés
+  - src/services/     → appels API externes
+  - src/types/        → types TypeScript partagés
+  - src/lib/          → singletons et utilitaires
+  - public/models/    → dépôt des fichiers GLB/GLTF
+Fichiers de config générés : tsconfig.json, next.config.ts, .gitignore,
+.env.local.example, postcss.config.mjs.
+
+[ÉTAPE 2] Script d'installation Windows
+-----------------------------------------
+Génération de scripts/install.ps1 (PowerShell).
+Le script vérifie et installe automatiquement Node.js (via winget si absent),
+installe les dépendances npm, crée .env.local depuis l'exemple, et installe
+les extensions VS Code recommandées. Utilisable par double-clic ou en CLI.
+
+[ÉTAPE 3] Dépendances & package.json
+--------------------------------------
+package.json complet avec toutes les dépendances du projet :
+  - next 15, react 19, react-dom 19
+  - three, @react-three/fiber, @react-three/drei  → rendu 3D
+  - zustand                                        → gestion d'état
+  - @anthropic-ai/sdk                              → API Claude
+  - lucide-react                                   → icônes UI
+  - tailwindcss v4, @tailwindcss/postcss           → styling
+Tailwind v4 configuré sans fichier tailwind.config — juste postcss.config.mjs
+et @import "tailwindcss" dans globals.css.
+
+[ÉTAPE 4] Schéma de communication TypeScript (AvatarResponse)
+---------------------------------------------------------------
+Définition du contrat LLM ↔ Frontend dans src/types/avatar.ts.
+Types exportés :
+  - AnimationName   : 7 animations (idle, talking, nodding, thinking, waving,
+                      surprised, shaking_head)
+  - EmotionName     : 8 émotions (neutral, happy, sad, angry, surprised,
+                      curious, excited, confused)
+  - EnvironmentPreset : 6 presets de scène
+  - AnimationCommand, EnvironmentCommand : commandes structurées
+  - AvatarResponse  : contrat principal (text, animation, emotion,
+                      environment?, metadata?)
+  - ConversationTurn : un tour dans l'historique de conversation
+Types API SSE définis dans src/types/api.ts :
+  ChatRequest, SSETextDelta, SSEAvatarComplete, SSEError, SSEDone.
+
+[ÉTAPE 5] Canvas 3D de base (Experience.tsx)
+---------------------------------------------
+Composant src/components/canvas/Experience.tsx avec directive 'use client'.
+Chargé en dynamic({ ssr: false }) dans page.tsx pour éviter les conflits
+WebGL/SSR. Contient : Canvas R3F, Suspense, OrbitControls, ContactShadows.
+Refactorisé plus tard pour déléguer à Avatar.tsx et SceneEnvironment.tsx.
+
+[ÉTAPE 6] Route API Claude avec Tool Use + SSE streaming (/api/chat)
+---------------------------------------------------------------------
+src/app/api/chat/route.ts : route POST Next.js qui :
+  1. Appelle Claude via anthropic.messages.stream() avec tool_choice "any"
+  2. Force la réponse JSON via l'outil send_avatar_response (Tool Use)
+     → garantie de JSON valide, zéro risque de texte parasite
+  3. Extrait le champ "text" du JSON partiel via TextFieldExtractor
+     (machine d'état qui parse le stream JSON caractère par caractère)
+  4. Émet des events SSE au format :
+       data: { type: "text_delta",      content: "..." }
+       data: { type: "avatar_complete", response: {...} }
+       data: { type: "error",           message: "..." }
+       data: { type: "done" }
+Singleton Anthropic client + définition de l'outil + SYSTEM_PROMPT dans
+src/lib/anthropic.ts. Jarvis se présente comme un assistant britannique
+élégant inspiré de J.A.R.V.I.S. de Iron Man.
+
+[ÉTAPE 7] Stores Zustand
+-------------------------
+src/store/useAvatarStore.ts : état visuel de l'avatar
+  - animation (AnimationCommand), emotion (EmotionName),
+    environment (EnvironmentCommand | null), isSpeaking, isThinking
+  - action applyAvatarResponse() : applique un AvatarResponse complet
+  - action reset() : retour à idle/neutral
+src/store/useConversationStore.ts : historique + streaming
+  - turns (ConversationTurn[]), streamingText, isLoading, error
+  - appendStreamingText() : accumule les text_delta SSE
+  - commitStreamingText() : finalise le tour assistant, vide streamingText
+
+[ÉTAPE 8] Hooks d'orchestration
+---------------------------------
+src/hooks/useChat.ts :
+  Gère le cycle LLM : fetch SSE → parse events → dispatch stores.
+  Option onAvatarComplete(response) : callback déclenché après avatar_complete,
+  utilisé par useJarvis pour lancer le TTS sans bloquer la boucle SSE.
+  La gestion de isSpeaking est volontairement déléguée à useAudio.
+
+src/hooks/useAudio.ts :
+  Gère le cycle audio via Web Audio API.
+  AudioContext créé paresseusement au premier play() (autoplay policy).
+  Graphe audio : BufferSource → AnalyserNode → destination (speakers).
+  - play(ArrayBuffer) : décode + joue + setSpeaking(true)
+  - source.onended : setSpeaking(false) automatique
+  - Écrit analyserSingleton.node à la création, null au démontage.
+
+src/hooks/useJarvis.ts :
+  Orchestrateur principal exposé à l'UI.
+  Compose useChat + useAudio + fetchTTS :
+    sendMessage → LLM SSE → onAvatarComplete → fetchTTS → play audio
+  Expose stopSpeaking() pour interrompre l'audio et reset l'avatar.
+
+[ÉTAPE 9] Interface utilisateur (ChatOverlay)
+----------------------------------------------
+src/components/ui/ChatOverlay.tsx : overlay minimal HUD au-dessus du canvas.
+  - ResponseBubble : affiche streamingText en temps réel, puis le dernier
+    message assistant au repos. Spinner "En réflexion…" pendant isThinking.
+  - InputBar : champ texte + bouton Send (Lucide). Reprend le focus
+    automatiquement après chaque réponse. Envoi par Enter ou clic.
+  - ErrorBanner : affiche les erreurs API en rouge.
+  pointer-events-none sur le conteneur → canvas 3D reste interactif.
+  pointer-events-auto ré-activé uniquement sur les zones cliquables.
+
+[ÉTAPE 10] Route proxy ElevenLabs (/api/tts)
+----------------------------------------------
+src/app/api/tts/route.ts : proxy serveur vers ElevenLabs /stream.
+  ELEVENLABS_API_KEY reste côté serveur, jamais exposée dans le navigateur.
+  Corps de la requête : text, model_id eleven_multilingual_v2, voice_settings.
+  Pipe le stream audio upstream directement au browser (Content-Type: audio/mpeg).
+src/services/elevenlabs.ts : fetchTTS(text) → ArrayBuffer.
+  Appelle /api/tts et retourne le buffer prêt pour AudioContext.decodeAudioData().
+
+[ÉTAPE 11] Avatar animé & SceneEnvironment réactifs au store
+--------------------------------------------------------------
+src/components/canvas/Avatar.tsx :
+  Sphère placeholder connectée à useAvatarStore.
+  - emotion → couleur + emissive du matériau (subscription React)
+  - animation → transforms via useFrame (lecture getState(), pas de re-render)
+  7 animations : idle (flottement), talking (pulsation), nodding (rotation.x),
+  thinking (rotation.y accumulée), waving (position.x), surprised (scale impulsif),
+  shaking_head (rotation.y oscillante).
+
+src/components/canvas/SceneEnvironment.tsx :
+  Lights + Environment preset réactifs au store.
+  <color attach="background"> : fond dynamique sans useEffect.
+  ambientLight intensité pilotée par environment.ambientIntensity.
+  Mapping des 6 presets Jarvis vers les HDR drei : studio, night, city,
+  park, warehouse.
+
+[ÉTAPE 12] Lip-sync par analyse d'amplitude
+---------------------------------------------
+src/lib/analyserSingleton.ts :
+  Singleton module-level { node: AnalyserNode | null }.
+  Pont sans prop drilling entre useAudio (qui écrit) et Avatar.tsx (qui lit).
+
+Lip-sync intégré dans Avatar.tsx → useFrame :
+  1. getRMSAmplitude(analyser, buffer) : lit 128 samples waveform (buffer
+     réutilisé chaque frame, zéro allocation GC).
+  2. Filtre low-pass : lerp(jaw, raw, 0.3) → mouvement lissé, pas de jitter.
+  3. Proxy sphère : mesh.scale.y *= 1 + jaw * 2.5 (squash vertical).
+  Lorsque l'avatar GLB réel sera chargé, remplacer par :
+    mesh.morphTargetInfluences['jawOpen'] = Math.min(jaw * 2.5, 1)
