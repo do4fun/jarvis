@@ -48,6 +48,12 @@ interface UseChatOptions {
   onAvatarComplete?: (response: AvatarResponse) => Promise<void>
 }
 
+// Options supplémentaires passées par appel (avatarSessionId pour WebRTC)
+interface SendMessageOptions {
+  /** Session AvatarKit — forwarded au backend pour le streaming TTS direct */
+  avatarSessionId?: string
+}
+
 export function useChat({ onAvatarComplete }: UseChatOptions = {}) {
   // setSpeaking is intentionally NOT managed here — useAudio owns that lifecycle
   const { applyAvatarResponse, setThinking } = useAvatarStore()
@@ -55,7 +61,7 @@ export function useChat({ onAvatarComplete }: UseChatOptions = {}) {
     useConversationStore()
 
   const sendMessage = useCallback(
-    async (message: string) => {
+    async (message: string, opts: SendMessageOptions = {}) => {
       const trimmed = message.trim()
       if (!trimmed) return
 
@@ -71,8 +77,9 @@ export function useChat({ onAvatarComplete }: UseChatOptions = {}) {
       setThinking(true)
 
       const body: ChatRequest = {
-        message: trimmed,
-        history: turns.map((t) => ({ role: t.role, content: t.content })),
+        message:         trimmed,
+        history:         turns.map((t) => ({ role: t.role, content: t.content })),
+        avatarSessionId: opts.avatarSessionId,
       }
 
       try {
