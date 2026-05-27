@@ -3,10 +3,14 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, ContactShadows } from '@react-three/drei'
 import { Suspense } from 'react'
-import Avatar from './Avatar'
+import AvatarSelector from './AvatarSelector'
 import SceneEnvironment from './SceneEnvironment'
 
-export default function Experience() {
+interface Props {
+  characterName: string
+}
+
+export default function Experience({ characterName }: Props) {
   return (
     <Canvas
       camera={{ position: [0, 0.5, 3], fov: 45 }}
@@ -16,7 +20,7 @@ export default function Experience() {
     >
       <Suspense fallback={null}>
         <SceneEnvironment />
-        <Avatar />
+        <AvatarSelector characterName={characterName} />
         <ContactShadows
           position={[0, -0.75, 0]}
           opacity={0.45}

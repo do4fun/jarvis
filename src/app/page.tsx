@@ -5,7 +5,7 @@ export default function Home() {
   const characterName = process.env.CARACTER_NAME ?? 'Jarvis'
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#0f0f1a]">
-      <SceneWrapper />
+      <SceneWrapper characterName={characterName} />
       <ChatOverlay characterName={characterName} />
     </main>
   )

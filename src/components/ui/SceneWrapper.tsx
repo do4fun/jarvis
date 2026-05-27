@@ -13,10 +13,14 @@ const Experience = dynamic(() => import('@/components/canvas/Experience'), {
   ),
 })
 
-export default function SceneWrapper() {
+interface Props {
+  characterName: string
+}
+
+export default function SceneWrapper({ characterName }: Props) {
   return (
     <div className="absolute inset-0">
-      <Experience />
+      <Experience characterName={characterName} />
     </div>
   )
 }
