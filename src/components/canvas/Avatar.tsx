@@ -96,7 +96,7 @@ function getRMSAmplitude(analyser: AnalyserNode, buffer: Uint8Array<ArrayBuffer>
 export default function Avatar() {
   const meshRef    = useRef<Mesh>(null)
   const jawRef     = useRef(0)              // smoothed jaw amplitude (0–1)
-  const audioData  = useRef<Uint8Array<ArrayBuffer> | null>(null)
+  const audioData  = useRef<Uint8Array<ArrayBuffer> | null>(null) // reused buffer, no GC per frame
 
   // Subscribe to emotion for material colour (triggers React re-render)
   const emotion = useAvatarStore((s) => s.emotion)
@@ -115,7 +115,7 @@ export default function Avatar() {
     if (analyser) {
       // Lazily allocate the buffer once (frequencyBinCount = fftSize / 2 = 128)
       if (!audioData.current || audioData.current.length !== analyser.frequencyBinCount) {
-        audioData.current = new Uint8Array(analyser.frequencyBinCount)
+        audioData.current = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>
       }
 
       const raw = getRMSAmplitude(analyser, audioData.current)
