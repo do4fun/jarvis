@@ -21,7 +21,6 @@ import next from 'next'
 import { WebSocketServer, WebSocket } from 'ws'
 import type { Socket } from 'net'
 import { createSTTSession } from './src/lib/stt.js'
-import { interruptSession } from './src/lib/avatarkit.js'
 import { activeStreams } from './src/lib/activeStreams.js'
 import { logger } from './src/lib/logger.js'
 import type { WsClientMessage } from './src/types/avatarkit.js'
@@ -84,11 +83,7 @@ function handleSTTConnection(ws: WebSocket, _req: IncomingMessage) {
           logger.info(CTX, '✓ stream Claude annulé via WebSocket')
         }
 
-        // Interruption AvatarKit en parallèle (fire-and-forget)
-        void interruptSession({ sessionId: avatarSessionId }).catch((err) => {
-          logger.error(CTX, '✗ interrupt AvatarKit depuis WebSocket', { err: String(err) })
-        })
-
+        // En mode LiveKit, l'interruption avatar est gérée par l'agent Python.
         break
       }
     }

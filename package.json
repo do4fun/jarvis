@@ -11,29 +11,34 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@deepgram/sdk": "^3.9.0",
+    "@livekit/components-react": "^2.9.21",
+    "@react-three/drei": "^10.0.6",
+    "@react-three/fiber": "^9.1.2",
+    "@spatialwalk/avatarkit": "^1.0.0-beta.75",
+    "@spatialwalk/avatarkit-rtc": "^1.0.0-beta.7",
+    "livekit-client": "^2.16.1",
+    "livekit-server-sdk": "^2.15.4",
+    "lucide-react": "^0.514.0",
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.176.0",
-    "@react-three/fiber": "^9.1.2",
-    "@react-three/drei": "^10.0.6",
-    "zustand": "^5.0.3",
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@deepgram/sdk": "^3.9.0",
     "ws": "^8.18.0",
-    "lucide-react": "^0.514.0"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.176.0",
     "@types/ws": "^8.5.13",
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2",
     "eslint": "^9.0.0",
     "eslint-config-next": "15.3.2",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

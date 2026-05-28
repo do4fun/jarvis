@@ -18,11 +18,19 @@ import type { WsServerMessage } from '@/types/avatarkit'
 
 const CTX = 'STT'
 
-// Singleton Deepgram client — une seule instance par processus
-const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY ?? '')
+// Singleton Deepgram client — initialisé lazily pour éviter un crash au
+// démarrage si DEEPGRAM_API_KEY est absent.
+let _deepgramClient: ReturnType<typeof createClient> | null = null
 
-if (!process.env.DEEPGRAM_API_KEY && process.env.NODE_ENV !== 'test') {
-  console.warn(`[${CTX}] DEEPGRAM_API_KEY manquant — la transcription échouera.`)
+function getDeepgramClient() {
+  if (_deepgramClient) return _deepgramClient
+  const key = process.env.DEEPGRAM_API_KEY
+  if (!key) {
+    logger.warn(CTX, 'DEEPGRAM_API_KEY manquant — STT désactivé')
+    return null
+  }
+  _deepgramClient = createClient(key)
+  return _deepgramClient
 }
 
 // ── Session STT ────────────────────────────────────────────────────────────────
@@ -47,7 +55,13 @@ export function createSTTSession(
 ): STTSession {
   logger.info(CTX, '→ createSTTSession', { language })
 
-  const live = deepgramClient.listen.live({
+  const client = getDeepgramClient()
+  if (!client) {
+    logger.warn(CTX, 'STT ignoré — DEEPGRAM_API_KEY absent')
+    return { sendAudio: () => {}, close: () => {} }
+  }
+
+  const live = client.listen.live({
     model: 'nova-2',
     language,
     smart_format: true,

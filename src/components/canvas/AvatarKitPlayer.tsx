@@ -1,115 +1,106 @@
 'use client'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AvatarKitPlayer — Lecteur vidéo WebRTC ultra-léger
+// AvatarKitPlayer — Rendu canvas WebGL + contrôles microphone
 //
-// Ce composant remplace le canvas Three.js / R3F par un simple élément <video>
-// recevant le flux MediaStream depuis AvatarKit via WebRTC.
-//
-// Optimisations latence :
-//   • autoPlay        : aucun clic utilisateur requis pour démarrer la vidéo
-//   • playsInline     : indispensable sur iOS pour éviter le fullscreen forcé
-//   • muted           : contourne la politique autoplay des navigateurs
-//                       (l'audio est géré séparément via WebRTC audio track)
-//   • disablePictureInPicture : réduit l'overhead de rendu sur mobile
-//   • Sans buffering  : le MediaStream WebRTC est en direct (pas de source src)
-//
-// Rendu côté serveur AvatarKit (SpatialReal) :
-//   L'avatar 3D est rendu sur les serveurs de SpatialReal et transmis en H.264
-//   via DTLS/SRTP → zéro charge GPU côté client.
+// Utilise le SDK officiel @spatialwalk/avatarkit + @spatialwalk/avatarkit-rtc.
+// L'avatar est rendu côté serveur SpatialReal et reçu via WebRTC (LiveKit).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useRef } from 'react'
-import { useAvatarKitStore } from '@/store/useAvatarKitStore'
-import { useAvatarKit } from '@/hooks/useAvatarKit'
-import type { AvatarKitSessionConfig } from '@/types/avatarkit'
+import { Mic, MicOff, RefreshCw } from 'lucide-react'
+import { useSpatialRealAvatar } from '@/hooks/useSpatialRealAvatar'
 
 interface AvatarKitPlayerProps {
-  config: AvatarKitSessionConfig
+  appId:     string
+  avatarId:  string
   className?: string
 }
 
-export default function AvatarKitPlayer({ config, className = '' }: AvatarKitPlayerProps) {
-  const videoRef  = useRef<HTMLVideoElement>(null)
-  const { mediaStream, status, error } = useAvatarKitStore()
-  const { connect } = useAvatarKit()
-
-  // Initialiser la session WebRTC au montage du composant
-  useEffect(() => {
-    void connect(config)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Intentionnellement vide — connexion unique au montage
-
-  // Attacher le MediaStream WebRTC au <video> dès réception
-  useEffect(() => {
-    if (!videoRef.current || !mediaStream) return
-
-    // Optimisation : assigner srcObject directement (pas de Blob URL)
-    // → zéro latence de création d'URL, pas de buffering HTTP
-    videoRef.current.srcObject = mediaStream
-
-    videoRef.current.play().catch((err) => {
-      console.error('[AvatarKitPlayer] play() error:', err)
-    })
-  }, [mediaStream])
+export default function AvatarKitPlayer({ appId, avatarId, className = '' }: AvatarKitPlayerProps) {
+  const {
+    status,
+    error,
+    downloadProgress,
+    isPublishingMic,
+    startPublishingMic,
+    stopPublishingMic,
+    reconnect,
+    containerRef,
+  } = useSpatialRealAvatar({ appId, avatarId })
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* ── Flux vidéo WebRTC ─────────────────────────────────────────────── */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline          // Requis iOS — évite le fullscreen automatique
-        muted={false}        // L'audio TTS arrive via WebRTC audio track
-        disablePictureInPicture
-        className={`h-full w-full object-cover transition-opacity duration-300 ${
-          status === 'connected' || status === 'speaking' ? 'opacity-100' : 'opacity-0'
+
+      {/* ── Canvas WebGL — rempli par AvatarView ───────────────────────────── */}
+      <div
+        ref={containerRef}
+        className={`h-full w-full transition-opacity duration-500 ${
+          status === 'connected' ? 'opacity-100' : 'opacity-0'
         }`}
-        aria-label="Avatar Jarvis en streaming"
       />
 
-      {/* ── États de connexion ────────────────────────────────────────────── */}
-      {(status === 'idle' || status === 'creating' || status === 'negotiating') && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0f0f1a]">
-          {/* Indicateur visuel pendant la connexion WebRTC */}
+      {/* ── États de chargement / connexion ───────────────────────────────── */}
+      {(status === 'idle' || status === 'initializing' || status === 'loading' || status === 'connecting') && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
           <div className="relative h-16 w-16">
             <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
             <div className="absolute inset-2 animate-spin rounded-full border-2 border-transparent border-t-blue-400" />
             <div className="absolute inset-4 rounded-full bg-blue-600/40" />
           </div>
-          <p className="text-sm font-medium text-blue-300/80 tracking-widest uppercase">
-            {status === 'creating'    && 'Initialisation…'}
-            {status === 'negotiating' && 'Connexion WebRTC…'}
-            {status === 'idle'        && 'En attente'}
-          </p>
-        </div>
-      )}
-
-      {/* ── Erreur de connexion ───────────────────────────────────────────── */}
-      {status === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#0f0f1a]">
-          <div className="h-12 w-12 rounded-full bg-red-900/40 flex items-center justify-center">
-            <span className="text-2xl">⚠</span>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-sm font-medium tracking-widest uppercase text-blue-300/80">
+              {status === 'initializing' && 'Initialisation SDK…'}
+              {status === 'loading'      && `Chargement avatar… ${downloadProgress}%`}
+              {status === 'connecting'   && 'Connexion LiveKit…'}
+              {status === 'idle'         && 'En attente'}
+            </p>
+            {status === 'loading' && downloadProgress > 0 && (
+              <div className="h-1 w-40 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-blue-400 transition-all duration-300"
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+            )}
           </div>
-          <p className="text-sm text-red-400 text-center px-4">{error ?? 'Erreur WebRTC'}</p>
         </div>
       )}
 
-      {/* ── Indicateur "parle" (overlay subtil) ──────────────────────────── */}
-      {status === 'speaking' && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 items-end h-5">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="w-1 bg-blue-400/70 rounded-full animate-pulse"
-              style={{
-                height:          `${(i % 3 === 0 ? 100 : i % 3 === 1 ? 60 : 80)}%`,
-                animationDelay:  `${i * 80}ms`,
-                animationDuration: '600ms',
-              }}
-            />
-          ))}
+      {/* ── Erreur ────────────────────────────────────────────────────────── */}
+      {status === 'error' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0f0f1a]">
+          <div className="h-12 w-12 rounded-full bg-red-900/40 flex items-center justify-center">
+            <span className="text-2xl text-red-400">⚠</span>
+          </div>
+          <p className="text-sm text-red-400 text-center px-6 max-w-xs">
+            {error ?? 'Erreur de connexion'}
+          </p>
+          <button
+            onClick={() => void reconnect()}
+            className="flex items-center gap-2 rounded-lg border border-blue-500/30 px-4 py-2 text-xs text-blue-300 transition-colors hover:bg-blue-500/10"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reconnecter
+          </button>
         </div>
+      )}
+
+      {/* ── Bouton microphone (affiché quand connecté) ─────────────────────── */}
+      {status === 'connected' && (
+        <button
+          onClick={() => void (isPublishingMic ? stopPublishingMic() : startPublishingMic())}
+          className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
+            isPublishingMic
+              ? 'border-blue-400/60 bg-blue-500/20 text-blue-300 shadow-lg shadow-blue-500/20'
+              : 'border-white/20 bg-black/40 text-white/50 hover:text-white/80'
+          }`}
+          aria-label={isPublishingMic ? 'Couper le microphone' : 'Activer le microphone'}
+        >
+          {isPublishingMic
+            ? <Mic    className="h-4 w-4" />
+            : <MicOff className="h-4 w-4" />
+          }
+        </button>
       )}
     </div>
   )
