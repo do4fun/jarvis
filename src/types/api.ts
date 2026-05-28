@@ -12,6 +12,8 @@ export interface ChatRequest {
    * Optimisation latence : le texte arrive à l'avatar sans round-trip client.
    */
   avatarSessionId?: string
+  /** LiveKit room name — defaults to 'jarvis-room' on the server */
+  room?: string
 }
 
 // ── SSE Events streamed back to the client ────────────────────────────────────
