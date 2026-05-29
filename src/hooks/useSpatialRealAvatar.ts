@@ -38,7 +38,8 @@ export interface SpatialRealAvatarController {
   startPublishingMic:   () => Promise<void>
   stopPublishingMic:    () => Promise<void>
   reconnect:            () => Promise<void>
-  containerRef:         React.RefObject<HTMLDivElement | null>
+  /** Callback ref — passer directement à `ref={containerRef}` sur le div container */
+  containerRef:         (node: HTMLDivElement | null) => void
 }
 
 interface Options {
@@ -48,51 +49,98 @@ interface Options {
 }
 
 export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: Options): SpatialRealAvatarController {
-  const containerRef    = useRef<HTMLDivElement | null>(null)
-  const playerRef       = useRef<AvatarPlayer | null>(null)
-  const avatarViewRef   = useRef<AvatarView | null>(null)
-  const connConfigRef   = useRef<{ url: string; token: string; roomName: string } | null>(null)
+  // containerInternalRef : accès synchrone au DOM (non-réactif)
+  const containerInternalRef = useRef<HTMLDivElement | null>(null)
+  // containerEl + containerReady : réactifs, déclenchent les effects
+  const [containerEl,    setContainerEl]    = useState<HTMLDivElement | null>(null)
+  const [containerReady, setContainerReady] = useState(false)
+
+  const playerRef     = useRef<AvatarPlayer | null>(null)
+  const avatarViewRef = useRef<AvatarView | null>(null)
+  const connConfigRef = useRef<{ url: string; token: string; roomName: string } | null>(null)
 
   const [status,            setStatus]            = useState<AvatarStatus>('idle')
   const [error,             setError]             = useState<string | null>(null)
   const [downloadProgress,  setDownloadProgress]  = useState(0)
   const [isPublishingMic,   setIsPublishingMic]   = useState(false)
 
-  // ── Initialisation ──────────────────────────────────────────────────────────
+  // ── Callback ref — déclenche les effets dès que le div est monté/démonté ────
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    containerInternalRef.current = node
+    setContainerEl(node)
+    // Lecture immédiate des dimensions pour éviter un frame d'attente inutile
+    setContainerReady(node !== null && node.offsetWidth > 0 && node.offsetHeight > 0)
+  }, [])
+
+  // ── ResizeObserver — confirme les dimensions réelles post-layout ─────────────
+  //
+  // AvatarView lit containerEl.offsetWidth/Height pour dimensionner son canvas
+  // WebGL interne. Si le container est 0×0 (layout CSS non encore propagé, cas
+  // fréquent avec dynamic import), le canvas est créé flou et ne se corrige plus.
+  //
+  // Le ResizeObserver garantit que containerReady passe à true UNIQUEMENT quand
+  // le container a des dimensions CSS réelles (> 0px), déclenchant alors l'init.
   useEffect(() => {
+    if (!containerEl) return
+
+    const markReady = () => {
+      setContainerReady(containerEl.offsetWidth > 0 && containerEl.offsetHeight > 0)
+    }
+
+    const observer = new ResizeObserver(markReady)
+    observer.observe(containerEl)
+    // requestAnimationFrame : vérifie après le premier paint complet du layout
+    const frame = requestAnimationFrame(markReady)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [containerEl])
+
+  // ── Initialisation — ne démarre QUE quand le container a des dimensions ──────
+  useEffect(() => {
+    if (!containerReady || !containerInternalRef.current) return
+
     let cancelled = false
 
     async function init() {
-      const container = containerRef.current
-      if (!container) return
+      const container = containerInternalRef.current!
 
       try {
         // 1. Init SDK (idempotent)
         setStatus('initializing')
         if (!AvatarSDK.isInitialized) {
           await AvatarSDK.initialize(appId, {
-            environment:       Environment.intl,
-            logLevel:          'warning' as never,
+            environment: Environment.intl,
+            logLevel:    'warning' as never,
           })
         }
         if (cancelled) return
 
-        // 2. Charger l'avatar
+        // 2. Charger l'avatar (utilise le cache si déjà téléchargé)
         setStatus('loading')
         let avatar: Avatar
         const cached = AvatarManager.shared.retrieve(avatarId)
         if (cached) {
           avatar = cached
         } else {
-          avatar = await AvatarManager.shared.load(avatarId, (info) => {
-            if ('progress' in info && typeof info.progress === 'number') {
-              setDownloadProgress(Math.round(info.progress * 100))
+          avatar = await AvatarManager.shared.load(avatarId, (info: unknown) => {
+            if (
+              info !== null &&
+              typeof info === 'object' &&
+              'progress' in info &&
+              typeof (info as Record<string, unknown>).progress === 'number'
+            ) {
+              setDownloadProgress(Math.round((info as Record<string, unknown>).progress as number * 100))
             }
           })
         }
         if (cancelled) return
 
-        // 3. Créer la vue WebGL
+        // 3. Créer la vue WebGL APRÈS confirmation des dimensions du container.
+        //    AvatarView dimensionne son canvas interne sur container.offsetWidth/Height.
+        //    Si ces valeurs sont 0, le canvas est rendu flou par upscaling CSS.
         avatarViewRef.current?.dispose()
         avatarViewRef.current = new AvatarView(avatar, container)
 
@@ -144,11 +192,11 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
       cancelled = true
       playerRef.current?.disconnect().catch(() => {})
       avatarViewRef.current?.dispose()
-      playerRef.current  = null
+      playerRef.current     = null
       avatarViewRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appId, avatarId, room])
+  }, [appId, avatarId, room, containerReady])
 
   // ── Microphone ──────────────────────────────────────────────────────────────
   const startPublishingMic = useCallback(async () => {
