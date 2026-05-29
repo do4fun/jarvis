@@ -162,7 +162,9 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
 
         // 5. Créer et connecter le player
         const provider = new LiveKitProvider()
-        const player   = new AvatarPlayer(provider, avatarViewRef.current)
+        const player   = new AvatarPlayer(provider, avatarViewRef.current, {
+          enableJitterBuffer: false,
+        })
         playerRef.current = player
 
         player.on('connected',    () => { if (!cancelled) setStatus('connected') })
