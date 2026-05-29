@@ -16,3 +16,17 @@ body {
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
 }
+
+/*
+  Canvas WebGL (AvatarView / AvatarKit) :
+  - display:block  élimine le gap de 4px inhérent aux éléments inline
+  - image-rendering:auto  désactive le smooth scaling des pixels du canvas
+    qui causerait un flou si le canvas était affiché à une taille différente
+    de sa résolution interne (ex. upscale par CSS sur Retina)
+  - Ces règles ne s'appliquent qu'au canvas injecté par AvatarView dans son
+    container ; elles ne bloquent pas les effets visuels des autres éléments.
+*/
+canvas {
+  display: block;
+  image-rendering: auto;
+}

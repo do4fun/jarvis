@@ -32,12 +32,22 @@ export default function AvatarKitPlayer({ appId, avatarId, className = '' }: Ava
     <div className={`relative overflow-hidden ${className}`}>
 
       {/* ── Canvas WebGL — rempli par AvatarView ───────────────────────────── */}
+      {/*
+        IMPORTANT anti-flou : `transition-opacity` est sur le div EXTÉRIEUR,
+        jamais sur le div qui contient le canvas WebGL (containerRef).
+        Appliquer une transition CSS directement sur le container du canvas
+        force le navigateur à compositer la texture GPU sur un layer dédié
+        avec interpolation sub-pixel → flou pendant et après la transition.
+        Le div interne (containerRef) est inerte côté CSS : aucun transform,
+        aucune opacity, aucun filter — seul AvatarView y touche.
+      */}
       <div
-        ref={containerRef}
         className={`h-full w-full transition-opacity duration-500 ${
           status === 'connected' ? 'opacity-100' : 'opacity-0'
         }`}
-      />
+      >
+        <div ref={containerRef} className="h-full w-full" />
+      </div>
 
       {/* ── États de chargement / connexion ───────────────────────────────── */}
       {(status === 'idle' || status === 'initializing' || status === 'loading' || status === 'connecting') && (
