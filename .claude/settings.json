@@ -18,7 +18,6 @@
     ],
     "PostCompact": [
       {
-        "matcher": "auto",
         "hooks": [
           {
             "type": "command",

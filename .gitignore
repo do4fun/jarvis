@@ -8,6 +8,7 @@ node_modules/
 # Environment — NEVER commit real keys
 .env.local
 .env.*.local
+backend/.env
 
 # Build
 dist/
@@ -25,3 +26,6 @@ Thumbs.db
 
 # Logs — overwritten on each startup, never commit
 logs/
+
+# Worktree branche compact-history — géré par git worktree, pas commité sur dev/main
+.compact-worktree/

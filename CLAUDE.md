@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-29 17:10 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-29 17:12 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,9 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+80abba3 feat: hooks auto-update CLAUDE.md + compact history
+b36c6f1 docs: compact history 2026-05-29_17-11 [auto]
+8157151 chore: update CLAUDE.md [auto]
 4b0be3e Merge branch 'claude/avatar-webrtc-integration-M93e9' into dev
 45e9b74 feat: int├®gration AvatarKit SpatialReal + agent Python LiveKit
 c6d3ac4 feat: int├®gration WebRTC AvatarKit SpatialReal + STT Deepgram + barge-in
@@ -50,7 +53,4 @@ c6d3ac4 feat: int├®gration WebRTC AvatarKit SpatialReal + STT Deepgram + barg
 74f3963 feat: futuristic JARVIS HUD avatar selectable via CARACTER_NAME
 62a7791 feat: make character name configurable via CARACTER_NAME env var
 3c434a4 Merge pull request #1 from do4fun/dev
-628b611 feat: settings panel, server logger, test page, permanent response HUD
-d913b94 feat: initial Jarvis 3D avatar assistant implementation
-f5454ea Initial commit
 ```
