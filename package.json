@@ -1,0 +1,19 @@
+{
+  "name": "jarvis-client",
+  "version": "0.1.0",
+  "description": "Test client for jarvis-backend — automated tests + interactive REPL",
+  "private": true,
+  "scripts": {
+    "test": "tsx src/run-tests.ts",
+    "chat": "tsx src/interactive.ts"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}
