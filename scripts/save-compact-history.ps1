@@ -6,32 +6,59 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 $raw  = [Console]::In.ReadToEnd()
 $data = $raw | ConvertFrom-Json
-$summary      = if ($data.summary) { $data.summary } else { $raw }
-$timestamp    = Get-Date -Format 'yyyy-MM-dd_HH-mm'
+
+# Le champ Claude Code s'appelle "compact_summary", pas "summary"
+$rawSummary = if ($data.compact_summary) { $data.compact_summary }
+              elseif ($data.summary)     { $data.summary }
+              else                       { $raw }
+
+# Extraire uniquement le contenu entre <summary>...</summary> (ignorer <analysis>)
+if ($rawSummary -match '(?s)<summary>(.*)</summary>') {
+    $body = $Matches[1].Trim()
+} else {
+    $body = $rawSummary.Trim()
+}
+
+$timestamp    = Get-Date -Format 'yyyy-MM-dd HH:mm'
+$fileStamp    = Get-Date -Format 'yyyy-MM-dd_HH-mm'
 $root         = git rev-parse --show-toplevel
+$branch       = git -C $root rev-parse --abbrev-ref HEAD
 $worktreePath = "$root/.compact-worktree"
-$branch       = "compact-history"
+$histBranch   = "compact-history"
+
+# En-tête markdown lisible
+$header = @"
+# Compact History — $timestamp
+
+**Projet :** Jarvis
+**Branche :** $branch
+**Trigger :** $($data.trigger ?? 'auto')
+
+---
+
+"@
+
+$content = $header + $body
 
 # ── Créer la branche orpheline si elle n'existe pas ─────────────────────────
-# Utilise le SHA constant de l'arbre vide git (valide dans tout dépôt).
-$branchExists = git -C $root branch --list $branch
+$branchExists = git -C $root branch --list $histBranch
 if (-not $branchExists) {
     $emptyTree  = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
     $commitHash = git -C $root commit-tree $emptyTree -m "init: compact-history [auto]"
-    git -C $root branch $branch $commitHash
+    git -C $root branch $histBranch $commitHash
 }
 
 # ── Monter le worktree si absent ─────────────────────────────────────────────
 if (-not (Test-Path $worktreePath)) {
-    git -C $root worktree add $worktreePath $branch 2>&1 | Out-Null
+    git -C $root worktree add $worktreePath $histBranch 2>&1 | Out-Null
 }
 
 # ── Écrire et committer le résumé ────────────────────────────────────────────
-$file = "$worktreePath/$timestamp.md"
-Set-Content -Path $file -Value $summary -Encoding utf8
+$file = "$worktreePath/$fileStamp.md"
+Set-Content -Path $file -Value $content -Encoding utf8
 
-git -C $worktreePath add "$timestamp.md"
-git -C $worktreePath commit -m "docs: compact $timestamp [auto]"
+git -C $worktreePath add "$fileStamp.md"
+git -C $worktreePath commit -m "docs: compact $fileStamp [auto]"
 
 # ── Pousser la branche orpheline (silencieux si remote absent) ───────────────
-git -C $root push origin $branch 2>&1 | Out-Null
+git -C $root push origin $histBranch 2>&1 | Out-Null

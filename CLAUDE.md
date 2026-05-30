@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-29 17:12 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-30 19:08 (branche : dev)
 
 ## Projet
 
@@ -43,14 +43,14 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
-80abba3 feat: hooks auto-update CLAUDE.md + compact history
-b36c6f1 docs: compact history 2026-05-29_17-11 [auto]
-8157151 chore: update CLAUDE.md [auto]
+5e6d529 feat: compact-history sur branche orpheline + claudeignore
+5748d94 chore: update CLAUDE.md [auto]
+5bc51b0 feat: hooks auto-update CLAUDE.md + compact history
+4644156 docs: compact history 2026-05-29_17-11 [auto]
+a574750 chore: update CLAUDE.md [auto]
+f558c59 fix: ├®liminer le flou du canvas WebGL AvatarKit lors des r├®ponses
 4b0be3e Merge branch 'claude/avatar-webrtc-integration-M93e9' into dev
 45e9b74 feat: int├®gration AvatarKit SpatialReal + agent Python LiveKit
 c6d3ac4 feat: int├®gration WebRTC AvatarKit SpatialReal + STT Deepgram + barge-in
 03f3b7e chore: upgrade Next.js to 15.5.18 to patch CVE-2025-66478
-74f3963 feat: futuristic JARVIS HUD avatar selectable via CARACTER_NAME
-62a7791 feat: make character name configurable via CARACTER_NAME env var
-3c434a4 Merge pull request #1 from do4fun/dev
 ```
