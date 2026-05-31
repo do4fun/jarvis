@@ -37,18 +37,29 @@ const nextConfig: NextConfig = {
       const prevArr = Array.isArray(prev) ? prev : prev ? [prev] : []
       config.externals = [...prevArr, '@spatialwalk/avatarkit', '@spatialwalk/avatarkit-rtc']
     } else {
+      // Next.js set module.generator.asset.filename which is not valid for asset/inline
+      // modules (data URIs). Move it to asset/resource where filename is supported.
+      if (config.module.generator?.asset?.filename) {
+        const filename = config.module.generator.asset.filename
+        delete config.module.generator.asset.filename
+        config.module.generator['asset/resource'] = {
+          ...config.module.generator['asset/resource'],
+          filename,
+        }
+      }
+
       config.experiments = {
         ...config.experiments,
         asyncWebAssembly: true,
         layers: true,
       }
 
-      // wasm-patch-loader : patch scriptDirectory → /wasm/ + supprime la data-URI 1 Mo.
-      // enforce:'pre' garantit que le patch s'applique sur la source brute,
-      // AVANT que SWC/Babel essaie de parser import.meta.url et échoue.
+      // wasm-patch-loader : couvre TOUT le dossier dist/ (avatar_core_wasm-*.js
+      // ET index-*.js qui embarquent tous deux des data-URI import.meta.url).
+      // enforce:'pre' garantit que le patch s'applique AVANT SWC/Babel.
       config.module.rules.push({
-        test:    /avatar_core_wasm-[^.]+\.js$/,
-        include: path.resolve('./node_modules/@spatialwalk/avatarkit'),
+        test:    /\.js$/,
+        include: path.resolve('./node_modules/@spatialwalk/avatarkit/dist'),
         enforce: 'pre',
         loader:  path.resolve('./scripts/wasm-patch-loader.cjs'),
       })

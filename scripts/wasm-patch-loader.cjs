@@ -1,57 +1,72 @@
 /**
- * Webpack loader for @spatialwalk/avatarkit Emscripten wrapper.
+ * Webpack loader for @spatialwalk/avatarkit dist files.
  *
- * Two problems with the Emscripten-generated file in webpack dev mode:
+ * Patches two patterns that cause webpack / browser errors:
  *
- * 1. `_scriptName = import.meta.url` resolves to a `file://` source path.
- *    The derived `scriptDirectory` (and hence `locateFile()`) then produces
- *    a `file://` URL for the .wasm file, which the browser rejects.
+ * Pattern A — Emscripten scriptDirectory (avatar_core_wasm-*.js, line ~8):
+ *   `var _scriptName = import.meta.url`
+ *   → Replaced so scriptDirectory resolves to <origin>/wasm/ instead of file://
  *
- * 2. The fallback `return new URL("data:application/wasm;base64,[~1MB]", ...)`
- *    is a massive line that webpack tries to parse as an asset dependency,
- *    causing extremely slow compilation.
+ * Pattern B — data-URI WASM fallback (both avatar_core_wasm-*.js and index-*.js):
+ *   `new URL("data:application/wasm;base64,[~1MB]", import.meta.url).href`
+ *   Two forms:
+ *     B1: starts a line with `return new URL(...)` (WASM wrapper file)
+ *     B2: mid-line ternary `... : new URL(...).href` (main index bundle)
+ *   → Replaced with a real URL pointing to public/wasm/<filename>
  *
- * Fixes:
- * - Patch `_scriptName` so `scriptDirectory` becomes `<origin>/wasm/`.
- *   AvatarKit's own `locateFile` then returns `<origin>/wasm/<filename>`,
- *   which the browser fetches over HTTP from Next.js `public/wasm/`.
+ * The WASM filename is discovered dynamically from node_modules so this loader
+ * survives package version bumps without manual hash updates.
  *
- * - Replace the data-URI line with a short call to `locateFile`,
- *   using the actual WASM filename discovered dynamically from node_modules
- *   (version-agnostic — survives package updates).
- *
- * Pre-requisite: the .wasm binary must live at public/wasm/<filename>.
- * next.config.ts auto-copies it from node_modules on startup (ensureWasm).
+ * Pre-requisite: .wasm binary must live at public/wasm/<filename>.
+ * next.config.ts auto-copies it via ensureWasm() on startup.
  */
 const fs   = require('fs')
 const path = require('path')
 
-// Discover the WASM filename from the SDK dist directory at loader load time.
-// __dirname = scripts/, so ../node_modules is the project root node_modules.
 const sdkDist = path.resolve(__dirname, '../node_modules/@spatialwalk/avatarkit/dist')
 const wasmFilename = fs.readdirSync(sdkDist).find(
-  f => f.startsWith('avatar_core_wasm') && f.endsWith('.wasm')
+  f => f.startsWith('avatar_core_wasm') && f.endsWith('.wasm'),
 ) ?? 'avatar_core_wasm.wasm'
+
+const wasmPublicUrl =
+  `(typeof window !== "undefined" ? window.location.origin : "http://localhost:3000") + "/wasm/${wasmFilename}"`
 
 module.exports = function wasmPatchLoader(source) {
   const lines = source.split('\n')
 
   return lines.map(line => {
-    // Fix 1: override _scriptName so `new URL(".", _scriptName).href`
-    // becomes `<origin>/wasm/` at runtime instead of a file:// path.
+
+    // ── Pattern A : scriptDirectory fix ─────────────────────────────────────
     if (line.includes('var _scriptName = import.meta.url')) {
       return line.replace(
         'var _scriptName = import.meta.url',
         'var _scriptName = ' +
           '(typeof window !== "undefined" ? window.location.origin : "http://localhost:3000") + ' +
-          '"/wasm/placeholder.js"'
+          '"/wasm/placeholder.js"',
       )
     }
 
-    // Fix 2: replace the ~1MB data-URI return with a short locateFile() call.
+    // ── Pattern B1 : `return new URL("data:application/wasm;base64,…")` ────
+    // From the WASM wrapper file — the line STARTS with `return new URL(…`
     if (line.trimStart().startsWith('return new URL("data:application/wasm;base64,')) {
       const indent = line.length - line.trimStart().length
       return ' '.repeat(indent) + `return locateFile("${wasmFilename}");`
+    }
+
+    // ── Pattern B2 : inline ternary with data-URI  ───────────────────────────
+    // From index-*.js — the line CONTAINS `new URL("data:application/wasm;base64,`
+    // mid-expression (e.g. `const wasmUrl = … : new URL("data:…", import.meta.url).href`)
+    if (
+      line.includes('new URL("data:application/wasm;base64,') &&
+      line.includes('import.meta.url')
+    ) {
+      const prefix    = 'new URL("data:application/wasm;base64,'
+      const suffix    = '", import.meta.url).href'
+      const start     = line.indexOf(prefix)
+      const end       = line.lastIndexOf(suffix)
+      if (start !== -1 && end !== -1) {
+        return line.slice(0, start) + wasmPublicUrl + line.slice(end + suffix.length)
+      }
     }
 
     return line
