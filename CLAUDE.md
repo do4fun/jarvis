@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 19:17 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 19:27 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+36bf695 diag: ├®chantillonnage continu WebRTC ÔåÆ logs/avatar-diag.jsonl
+81d79c9 chore: update CLAUDE.md [auto]
 fe49d68 diag: ajouter logAvatarDiagnostics() au moment de la connexion avatar
 3733a97 chore: update CLAUDE.md [auto]
 dca4289 fix: ├®tendre wasm-patch-loader ├á index-BFNu-mKX.js + fix generator.asset.filename
@@ -51,6 +53,4 @@ cad4d43 chore: update CLAUDE.md [auto]
 ac528dc chore: update CLAUDE.md [auto]
 569aa75 fix: corriger chargement WASM beta.104 + loader version-agnostique
 bfd1ee4 chore: update CLAUDE.md [auto]
-cc536e4 fix: mise ├á jour avatarkit beta.104 + withAvatarkit + DrivingServiceMode.host
-51fc0b1 chore: update CLAUDE.md [auto]
 ```

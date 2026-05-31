@@ -43,11 +43,9 @@ type LiveKitRoom = {
       track?: { mediaStreamTrack?: MediaStreamTrack }
     }>
   }>
-  engine?: {
-    pcManager?: {
-      subscriber?: { pc?: RTCPeerConnection }
-    }
-  }
+  engine?: { pcManager?: { subscriber?: { pc?: RTCPeerConnection } } }
+  on: (event: string, cb: (...args: unknown[]) => void) => void
+  off: (event: string, cb: (...args: unknown[]) => void) => void
 }
 
 async function post(payload: Record<string, unknown>) {
@@ -64,25 +62,14 @@ function getSubscriberPc(room: LiveKitRoom): RTCPeerConnection | undefined {
   return room.engine?.pcManager?.subscriber?.pc
 }
 
-function getCanvas(view: AvatarView | null): HTMLCanvasElement | null {
-  const container = view && ('container' in view)
-    ? (view as unknown as { container: HTMLElement }).container
-    : null
-  return container?.querySelector('canvas') ?? null
-}
-
-function startAvatarDiagnostics(player: AvatarPlayer, view: AvatarView | null): () => void {
-  const room = player.getNativeClient() as LiveKitRoom | null
-  if (!room) return () => {}
-
-  // ── Snapshot statique au connect ─────────────────────────────────────────
-  const tracks: Record<string, unknown>[] = []
+function snapshotTracks(room: LiveKitRoom): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = []
   for (const [, p] of room.remoteParticipants) {
     for (const [, pub] of p.trackPublications) {
       const mst = pub.track?.mediaStreamTrack
       if (!mst) continue
       const s = mst.getSettings()
-      tracks.push({
+      out.push({
         participant: p.identity,
         name: pub.trackName,
         kind: mst.kind,
@@ -90,21 +77,40 @@ function startAvatarDiagnostics(player: AvatarPlayer, view: AvatarView | null): 
       })
     }
   }
+  return out
+}
 
-  const canvas = getCanvas(view)
-  const dpr    = window.devicePixelRatio || 1
-  const canvasInfo = canvas ? {
-    internalW:  canvas.width,
-    internalH:  canvas.height,
-    cssW:       canvas.offsetWidth,
-    cssH:       canvas.offsetHeight,
-    expectedW:  Math.round(canvas.offsetWidth  * dpr),
-    expectedH:  Math.round(canvas.offsetHeight * dpr),
+function snapshotCanvas(container: HTMLElement | null): Record<string, unknown> | null {
+  const canvas = container?.querySelector('canvas')
+  if (!canvas) return null
+  const dpr = window.devicePixelRatio || 1
+  return {
+    internalW: canvas.width,
+    internalH: canvas.height,
+    cssW:      canvas.offsetWidth,
+    cssH:      canvas.offsetHeight,
+    expectedW: Math.round(canvas.offsetWidth  * dpr),
+    expectedH: Math.round(canvas.offsetHeight * dpr),
     dpr,
-    upscaled:   canvas.width < canvas.offsetWidth * dpr,
-  } : null
+    upscaled:  canvas.width < canvas.offsetWidth * dpr,
+  }
+}
 
-  void post({ type: 'connect', tracks, canvas: canvasInfo })
+function startAvatarDiagnostics(
+  player:    AvatarPlayer,
+  container: HTMLElement | null,   // div passé à AvatarView — contient le canvas
+): () => void {
+  const room = player.getNativeClient() as LiveKitRoom | null
+  if (!room) return () => {}
+
+  // ── Snapshot initial (tracks peut être vide si l'agent n'a pas encore publié) ─
+  void post({ type: 'connect', tracks: snapshotTracks(room), canvas: snapshotCanvas(container) })
+
+  // ── trackSubscribed : l'agent publie ses tracks après avoir rejoint la room ──
+  const onTrackSubscribed = () => {
+    void post({ type: 'track_subscribed', tracks: snapshotTracks(room) })
+  }
+  room.on('trackSubscribed', onTrackSubscribed)
 
   // ── Échantillonnage périodique (stats dynamiques) ─────────────────────────
   let prevBytes: Record<string, number> = {}
@@ -152,6 +158,7 @@ function startAvatarDiagnostics(player: AvatarPlayer, view: AvatarView | null): 
   // ── Stop — à appeler au disconnect ───────────────────────────────────────
   return () => {
     clearInterval(intervalId)
+    room.off('trackSubscribed', onTrackSubscribed)
     void post({ type: 'disconnect', totalSamples: sampleCount })
   }
 }
@@ -303,7 +310,7 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
 
         player.on('connected', () => {
           if (!cancelled) setStatus('connected')
-          stopDiag = startAvatarDiagnostics(player, avatarViewRef.current)
+          stopDiag = startAvatarDiagnostics(player, containerInternalRef.current)
         })
         player.on('disconnected', () => {
           stopDiag?.()
