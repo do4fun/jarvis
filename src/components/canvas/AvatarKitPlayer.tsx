@@ -46,7 +46,7 @@ export default function AvatarKitPlayer({ appId, avatarId, className = '' }: Ava
           status === 'connected' ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div ref={containerRef} className="h-full w-full" />
+        <div ref={containerRef} className="h-full w-full min-h-100" />
       </div>
 
       {/* ── États de chargement / connexion ───────────────────────────────── */}

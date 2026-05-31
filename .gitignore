@@ -27,5 +27,8 @@ Thumbs.db
 # Logs — overwritten on each startup, never commit
 logs/
 
+# WASM AvatarKit — auto-copié par withAvatarkit() au démarrage, ne pas committer le binaire
+public/_avatarkit/
+
 # Worktree branche compact-history — géré par git worktree, pas commité sur dev/main
 .compact-worktree/

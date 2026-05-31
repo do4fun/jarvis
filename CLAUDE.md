@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-30 19:08 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-30 19:40 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+47a4c08 fix: save-compact-history lit compact_summary + formate en markdown lisible
+ea43508 chore: update CLAUDE.md [auto]
 5e6d529 feat: compact-history sur branche orpheline + claudeignore
 5748d94 chore: update CLAUDE.md [auto]
 5bc51b0 feat: hooks auto-update CLAUDE.md + compact history
@@ -51,6 +53,4 @@ a574750 chore: update CLAUDE.md [auto]
 f558c59 fix: ├®liminer le flou du canvas WebGL AvatarKit lors des r├®ponses
 4b0be3e Merge branch 'claude/avatar-webrtc-integration-M93e9' into dev
 45e9b74 feat: int├®gration AvatarKit SpatialReal + agent Python LiveKit
-c6d3ac4 feat: int├®gration WebRTC AvatarKit SpatialReal + STT Deepgram + barge-in
-03f3b7e chore: upgrade Next.js to 15.5.18 to patch CVE-2025-66478
 ```

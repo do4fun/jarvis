@@ -17,6 +17,7 @@ import {
   AvatarSDK,
   AvatarManager,
   AvatarView,
+  DrivingServiceMode,
   Environment,
   type Avatar,
 } from '@spatialwalk/avatarkit'
@@ -112,8 +113,8 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
         setStatus('initializing')
         if (!AvatarSDK.isInitialized) {
           await AvatarSDK.initialize(appId, {
-            environment: Environment.intl,
-            logLevel:    'warning' as never,
+            environment:        Environment.intl,
+            drivingServiceMode: DrivingServiceMode.host,
           })
         }
         if (cancelled) return
@@ -162,9 +163,7 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
 
         // 5. Créer et connecter le player
         const provider = new LiveKitProvider()
-        const player   = new AvatarPlayer(provider, avatarViewRef.current, {
-          enableJitterBuffer: false,
-        })
+        const player   = new AvatarPlayer(provider, avatarViewRef.current)
         playerRef.current = player
 
         player.on('connected',    () => { if (!cancelled) setStatus('connected') })
