@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-30 19:40 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 07:52 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+cc536e4 fix: mise ├á jour avatarkit beta.104 + withAvatarkit + DrivingServiceMode.host
+51fc0b1 chore: update CLAUDE.md [auto]
 47a4c08 fix: save-compact-history lit compact_summary + formate en markdown lisible
 ea43508 chore: update CLAUDE.md [auto]
 5e6d529 feat: compact-history sur branche orpheline + claudeignore
@@ -51,6 +53,4 @@ ea43508 chore: update CLAUDE.md [auto]
 4644156 docs: compact history 2026-05-29_17-11 [auto]
 a574750 chore: update CLAUDE.md [auto]
 f558c59 fix: ├®liminer le flou du canvas WebGL AvatarKit lors des r├®ponses
-4b0be3e Merge branch 'claude/avatar-webrtc-integration-M93e9' into dev
-45e9b74 feat: int├®gration AvatarKit SpatialReal + agent Python LiveKit
 ```

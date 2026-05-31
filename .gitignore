@@ -27,7 +27,9 @@ Thumbs.db
 # Logs — overwritten on each startup, never commit
 logs/
 
-# WASM AvatarKit — auto-copié par withAvatarkit() au démarrage, ne pas committer le binaire
+# WASM AvatarKit — auto-copié depuis node_modules par next.config.ts (ensureWasm)
+# Ne pas committer les binaires lourds ; ils sont régénérés après npm install.
+public/wasm/avatar_core_wasm-*.wasm
 public/_avatarkit/
 
 # Worktree branche compact-history — géré par git worktree, pas commité sur dev/main
