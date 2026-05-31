@@ -5,13 +5,15 @@ description = "Jarvis voice agent — LiveKit pipeline with SpatialReal avatar"
 requires-python = ">=3.10,<3.15"
 
 dependencies = [
-    "livekit-agents==1.5.14",
+    # Versions alignées sur livekit-plugins-spatialreal (dernière version PyPI : 1.4.5)
+    "livekit-agents==1.4.5",
     "livekit-api>=1.1.0",
-    "livekit-plugins-silero==1.5.14",
-    "livekit-plugins-anthropic==1.5.14",
-    "livekit-plugins-deepgram==1.5.14",
-    "livekit-plugins-cartesia==1.5.14",
-    "livekit-plugins-spatialreal @ git+https://github.com/spatialwalk/livekit-plugins-spatialreal.git@main",
+    "livekit-plugins-silero==1.4.5",
+    "livekit-plugins-anthropic==1.4.5",
+    "livekit-plugins-deepgram==1.4.5",
+    "livekit-plugins-cartesia==1.4.5",
+    # Plugin officiel SpatialReal — publié sur PyPI (PR #5014 livekit/agents)
+    "livekit-plugins-spatialreal==1.4.5",
     "python-dotenv>=1.0.0",
 ]
 

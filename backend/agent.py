@@ -1,9 +1,16 @@
 """
-Jarvis Voice Agent — LiveKit agents 1.5 + Anthropic Claude
-===========================================================
+Jarvis Voice Agent — LiveKit agents 1.4.5 + Anthropic Claude
+=============================================================
 Pipeline : VAD (Silero) → STT (Deepgram) → LLM (Claude) → TTS (Cartesia)
                                                            ↓
                                                 SpatialReal AvatarSession
+
+SpatialReal ne streame pas de vidéo : des données d'animation sont
+transmises via LiveKit et rendues côté client par @spatialwalk/avatarkit.
+Voir : https://github.com/spatialwalk/avatarkit-voice-agent-demo
+
+Variables d'environnement requises pour AvatarSession :
+  SPATIALREAL_API_KEY, SPATIALREAL_APP_ID, SPATIALREAL_AVATAR_ID
 """
 
 import asyncio
@@ -31,12 +38,15 @@ SYSTEM_PROMPT = os.getenv(
 )
 
 
+class JarvisAgent(Agent):
+    def __init__(self) -> None:
+        super().__init__(instructions=SYSTEM_PROMPT)
+
+
 async def entrypoint(ctx: JobContext) -> None:
     logger.info("Agent démarré — room: %s", ctx.room.name)
 
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-
-    agent = Agent(instructions=SYSTEM_PROMPT)
 
     session = AgentSession(
         vad=silero.VAD.load(),
@@ -55,14 +65,11 @@ async def entrypoint(ctx: JobContext) -> None:
         ),
     )
 
-    avatar_session = AvatarSession(
-        api_key=os.environ["SPATIALREAL_API_KEY"],
-        app_id=os.environ["SPATIALREAL_APP_ID"],
-        avatar_id=os.environ["SPATIALREAL_AVATAR_ID"],
-    )
-
-    await avatar_session.start(session, ctx.room)
-    await session.start(agent, room=ctx.room)
+    # AvatarSession lit SPATIALREAL_API_KEY / SPATIALREAL_APP_ID /
+    # SPATIALREAL_AVATAR_ID depuis l'environnement (pas de passage explicite).
+    avatar = AvatarSession()
+    await avatar.start(session, room=ctx.room)
+    await session.start(agent=JarvisAgent(), room=ctx.room)
 
     @ctx.room.on("data_received")
     def on_data_received(packet: rtc.DataPacket):
