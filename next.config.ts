@@ -43,10 +43,13 @@ const nextConfig: NextConfig = {
         layers: true,
       }
 
-      // wasm-patch-loader : patch scriptDirectory → /wasm/ + supprime la data-URI 1 Mo
-      config.module.rules.unshift({
+      // wasm-patch-loader : patch scriptDirectory → /wasm/ + supprime la data-URI 1 Mo.
+      // enforce:'pre' garantit que le patch s'applique sur la source brute,
+      // AVANT que SWC/Babel essaie de parser import.meta.url et échoue.
+      config.module.rules.push({
         test:    /avatar_core_wasm-[^.]+\.js$/,
         include: path.resolve('./node_modules/@spatialwalk/avatarkit'),
+        enforce: 'pre',
         loader:  path.resolve('./scripts/wasm-patch-loader.cjs'),
       })
 

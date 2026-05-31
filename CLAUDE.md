@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 07:52 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 07:59 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+569aa75 fix: corriger chargement WASM beta.104 + loader version-agnostique
+bfd1ee4 chore: update CLAUDE.md [auto]
 cc536e4 fix: mise ├á jour avatarkit beta.104 + withAvatarkit + DrivingServiceMode.host
 51fc0b1 chore: update CLAUDE.md [auto]
 47a4c08 fix: save-compact-history lit compact_summary + formate en markdown lisible
@@ -51,6 +53,4 @@ ea43508 chore: update CLAUDE.md [auto]
 5748d94 chore: update CLAUDE.md [auto]
 5bc51b0 feat: hooks auto-update CLAUDE.md + compact history
 4644156 docs: compact history 2026-05-29_17-11 [auto]
-a574750 chore: update CLAUDE.md [auto]
-f558c59 fix: ├®liminer le flou du canvas WebGL AvatarKit lors des r├®ponses
 ```
