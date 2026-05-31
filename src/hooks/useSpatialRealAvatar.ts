@@ -23,6 +23,86 @@ import {
 } from '@spatialwalk/avatarkit'
 import { AvatarPlayer, LiveKitProvider } from '@spatialwalk/avatarkit-rtc'
 
+// ── Diagnostic WebRTC + canvas (affiché dans la console navigateur) ───────────
+function logAvatarDiagnostics(player: AvatarPlayer, view: AvatarView | null) {
+  try {
+    const room = player.getNativeClient() as {
+      remoteParticipants: Map<string, {
+        identity: string
+        trackPublications: Map<string, {
+          trackName: string
+          kind: string
+          track?: { mediaStreamTrack?: MediaStreamTrack }
+        }>
+      }>
+    } | null
+    if (!room) return
+
+    console.group('[AvatarKit Diagnostics]')
+
+    // ── Tracks WebRTC reçus ────────────────────────────────────────────────
+    for (const [, participant] of room.remoteParticipants) {
+      for (const [, pub] of participant.trackPublications) {
+        const mst = pub.track?.mediaStreamTrack
+        if (!mst) continue
+        const base = { participant: participant.identity, name: pub.trackName, kind: pub.kind }
+        if (mst.kind === 'video') {
+          const s = (mst as MediaStreamTrack).getSettings()
+          console.log('Track vidéo :', { ...base, width: s.width, height: s.height, frameRate: s.frameRate, codec: (s as Record<string, unknown>).codec })
+        } else {
+          console.log('Track audio :', base)
+        }
+      }
+    }
+
+    // ── Stats WebRTC (bitrate, perte paquets, jitter) ──────────────────────
+    const pc = (room as unknown as { engine?: { pcManager?: { publisher?: { pc?: RTCPeerConnection }, subscriber?: { pc?: RTCPeerConnection } } } })
+      ?.engine?.pcManager?.subscriber?.pc
+    if (pc) {
+      void pc.getStats().then(stats => {
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp') {
+            const r = report as RTCInboundRtpStreamStats & Record<string, unknown>
+            console.log('inbound-rtp :', {
+              kind:          r.kind,
+              codec:         r.codecId,
+              bitrate_kbps:  r.bytesReceived != null ? `~${Math.round(Number(r.bytesReceived) / 1024)} kB total` : 'n/a',
+              packetsLost:   r.packetsLost,
+              jitter:        r.jitter,
+              framesDecoded: r.framesDecoded,
+              framesDropped: r.framesDropped,
+              frameWidth:    r.frameWidth,
+              frameHeight:   r.frameHeight,
+            })
+          }
+        })
+      })
+    }
+
+    // ── Résolution canvas WebGL vs affichage CSS ───────────────────────────
+    const container = view && ('container' in view
+      ? (view as unknown as { container: HTMLElement }).container
+      : null)
+    const canvas = container?.querySelector('canvas')
+    if (canvas) {
+      const dpr = window.devicePixelRatio || 1
+      console.log('Canvas WebGL :', {
+        internal:    `${canvas.width} × ${canvas.height}`,
+        css:         `${canvas.offsetWidth} × ${canvas.offsetHeight}`,
+        expected:    `${Math.round(canvas.offsetWidth * dpr)} × ${Math.round(canvas.offsetHeight * dpr)}`,
+        devicePixelRatio: dpr,
+        upscaled:    canvas.width < canvas.offsetWidth * dpr,
+      })
+    } else {
+      console.warn('Canvas WebGL introuvable dans le container AvatarView')
+    }
+
+    console.groupEnd()
+  } catch (e) {
+    console.warn('[AvatarKit Diagnostics] erreur :', e)
+  }
+}
+
 export type AvatarStatus =
   | 'idle'
   | 'initializing'
@@ -166,7 +246,10 @@ export function useSpatialRealAvatar({ appId, avatarId, room = 'jarvis-room' }: 
         const player   = new AvatarPlayer(provider, avatarViewRef.current)
         playerRef.current = player
 
-        player.on('connected',    () => { if (!cancelled) setStatus('connected') })
+        player.on('connected', () => {
+          if (!cancelled) setStatus('connected')
+          logAvatarDiagnostics(player, avatarViewRef.current)
+        })
         player.on('disconnected', () => { if (!cancelled) setStatus('idle') })
         player.on('stalled',      () => {
           if (!cancelled) void player.reconnect().catch(() => setStatus('error'))

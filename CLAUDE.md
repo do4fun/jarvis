@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 08:06 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 08:15 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+dca4289 fix: ├®tendre wasm-patch-loader ├á index-BFNu-mKX.js + fix generator.asset.filename
+cad4d43 chore: update CLAUDE.md [auto]
 1b68fc6 fix: ajouter enforce:'pre' au wasm-patch-loader
 ac528dc chore: update CLAUDE.md [auto]
 569aa75 fix: corriger chargement WASM beta.104 + loader version-agnostique
@@ -51,6 +53,4 @@ cc536e4 fix: mise ├á jour avatarkit beta.104 + withAvatarkit + DrivingService
 51fc0b1 chore: update CLAUDE.md [auto]
 47a4c08 fix: save-compact-history lit compact_summary + formate en markdown lisible
 ea43508 chore: update CLAUDE.md [auto]
-5e6d529 feat: compact-history sur branche orpheline + claudeignore
-5748d94 chore: update CLAUDE.md [auto]
 ```
