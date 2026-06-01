@@ -11,35 +11,16 @@ export interface JarvisController {
 }
 
 export function useJarvis(): JarvisController {
-  const { applyAvatarResponse, speak } = useAvatarStore()
+  const { applyAvatarResponse } = useAvatarStore()
 
   const handleAvatarComplete = useCallback(
     async (response: AvatarResponse) => {
       applyAvatarResponse(response)
-
-      // SDK mode : TTS → PCM → controller.send()
-      if (!speak || !response.text?.trim()) return
-
-      try {
-        const res = await fetch('/api/tts-pcm', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ text: response.text }),
-        })
-        if (!res.ok) {
-          console.error('[Jarvis] tts-pcm error', res.status)
-          return
-        }
-        const pcmBuffer = await res.arrayBuffer()
-        await speak(pcmBuffer)
-      } catch (err) {
-        console.error('[Jarvis] speak error', err)
-      }
+      // La voix est gérée par l'agent Python via LiveKit data channel (voir /api/chat)
     },
-    [applyAvatarResponse, speak],
+    [applyAvatarResponse],
   )
 
   const { sendMessage } = useChat({ onAvatarComplete: handleAvatarComplete })
-
   return { sendMessage, isLoading: false }
 }

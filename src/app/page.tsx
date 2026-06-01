@@ -1,11 +1,8 @@
-import AvatarKitSection from '@/components/canvas/AvatarKitSection'
-import ChatOverlay from '@/components/ui/ChatOverlay'
+import dynamic from 'next/dynamic'
+
+// JarvisAvatar utilise WebGL + LiveKit — désactiver le SSR
+const JarvisAvatar = dynamic(() => import('@/components/JarvisAvatar'), { ssr: false })
 
 export default function Home() {
-  return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#0f0f1a]">
-      <AvatarKitSection />
-      <ChatOverlay />
-    </main>
-  )
+  return <JarvisAvatar />
 }
