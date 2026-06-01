@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 
-// Retourne les credentials SpatialReal pour le mode SDK côté client.
-// Le session token ne doit pas être dans NEXT_PUBLIC_* pour éviter de l'exposer
-// dans le bundle JS. Il est fourni ici par le serveur uniquement.
+// SPATIALREAL_SESSION_TOKEN : JWT temporaire généré sur https://app.spatialreal.ai/apps
+// À régénérer manuellement depuis le dashboard quand il expire.
 export async function POST() {
-  const sessionToken = process.env.SPATIALREAL_SESSION_TOKEN ?? process.env.SPATIALREAL_API_KEY
+  const sessionToken = process.env.SPATIALREAL_SESSION_TOKEN
   const appId        = process.env.NEXT_PUBLIC_SPATIALREAL_APP_ID
   const avatarId     = process.env.NEXT_PUBLIC_AVATARKIT_AVATAR_ID
 
   if (!sessionToken || !appId || !avatarId) {
+    const missing = [
+      !sessionToken && 'SPATIALREAL_SESSION_TOKEN',
+      !appId        && 'NEXT_PUBLIC_SPATIALREAL_APP_ID',
+      !avatarId     && 'NEXT_PUBLIC_AVATARKIT_AVATAR_ID',
+    ].filter(Boolean).join(', ')
     return NextResponse.json(
-      { error: 'SpatialReal non configuré (SPATIALREAL_SESSION_TOKEN / APP_ID / AVATAR_ID)' },
+      { error: `Variables manquantes dans .env.local : ${missing}` },
       { status: 500 },
     )
   }

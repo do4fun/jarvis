@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 21:51 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 22:57 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+1be5672 chore: d├®placer PostCompact vers settings global (~/.claude/settings.json)
+71e0134 chore: update CLAUDE.md [auto]
 accac06 fix: z-index sur ├®l├®ments UI pour passer au-dessus du canvas WebGL
 1ceea70 chore: update CLAUDE.md [auto]
 3c705d4 fix: use client sur page.tsx pour ssr:false dynamic
@@ -51,6 +53,4 @@ accac06 fix: z-index sur ├®l├®ments UI pour passer au-dessus du canvas Web
 6076939 chore: update CLAUDE.md [auto]
 8f1ecf3 fix: getUpgradeHandler() apr├¿s prepare()
 0c75fb6 chore: update CLAUDE.md [auto]
-aac1b31 fix: passer /_next/webpack-hmr au handler Next.js (HMR WebSocket)
-a4cbbaa chore: update CLAUDE.md [auto]
 ```
