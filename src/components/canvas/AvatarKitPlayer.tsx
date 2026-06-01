@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useSpatialRealAvatar } from '@/hooks/useSpatialRealAvatar'
 
@@ -13,10 +14,11 @@ export default function AvatarKitPlayer({ className = '', onReady }: AvatarKitPl
   const { status, error, downloadProgress, speak, reconnect, containerRef } =
     useSpatialRealAvatar()
 
-  // Notifier le parent dès que l'avatar est connecté
-  if (status === 'connected' && onReady) {
-    onReady(speak)
-  }
+  // Notifier le parent une fois connecté — useEffect pour éviter la mise à jour
+  // Zustand pendant le render (causerait un crash React silencieux)
+  useEffect(() => {
+    if (status === 'connected') onReady?.(speak)
+  }, [status, speak, onReady])
 
   return (
     <div className={`relative overflow-hidden ${className}`}>

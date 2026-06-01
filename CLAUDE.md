@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 21:03 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 21:17 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+ecb1e87 fix: wasm-patch-loader sur tout le dist/ ÔÇö withAvatarkit ne patchait pas index-*.js (data-URI 1.27Mo)
+8010fda chore: update CLAUDE.md [auto]
 4e3f600 feat: remplacement LiveKit par SDK mode SpatialReal direct
 e8983ec chore: update CLAUDE.md [auto]
 a22f089 fix(diag): container DOM direct + ├®coute trackSubscribed
@@ -51,6 +53,4 @@ a22f089 fix(diag): container DOM direct + ├®coute trackSubscribed
 81d79c9 chore: update CLAUDE.md [auto]
 fe49d68 diag: ajouter logAvatarDiagnostics() au moment de la connexion avatar
 3733a97 chore: update CLAUDE.md [auto]
-dca4289 fix: ├®tendre wasm-patch-loader ├á index-BFNu-mKX.js + fix generator.asset.filename
-cad4d43 chore: update CLAUDE.md [auto]
 ```

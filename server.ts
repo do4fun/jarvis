@@ -102,7 +102,10 @@ function handleSTTConnection(ws: WebSocket, _req: IncomingMessage) {
 
 // ── Démarrage ─────────────────────────────────────────────────────────────────
 
-void app.prepare().then(() => {
+void app.prepare().catch((err: unknown) => {
+  console.error('✗ Next.js failed to prepare:', err)
+  process.exit(1)
+}).then(() => {
   const httpServer = createServer((req, res) => {
     const parsedUrl = parse(req.url ?? '/', true)
     handle(req, res, parsedUrl)
@@ -132,3 +135,4 @@ void app.prepare().then(() => {
     console.log(`  WebSocket STT : ws://localhost:${port}/ws/stt\n`)
   })
 })
+
