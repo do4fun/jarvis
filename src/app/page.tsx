@@ -1,3 +1,4 @@
+'use client'
 import dynamic from 'next/dynamic'
 
 // JarvisAvatar utilise WebGL + LiveKit — désactiver le SSR
