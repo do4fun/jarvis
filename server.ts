@@ -31,11 +31,8 @@ const dev  = process.env.NODE_ENV !== 'production'
 
 // ── Initialisation Next.js ────────────────────────────────────────────────────
 
-const app           = next({ dev, port })
-const handle        = app.getRequestHandler()
-// getUpgradeHandler gère le WebSocket HMR de Next.js (/_next/webpack-hmr)
-const handleUpgrade = (app as unknown as { getUpgradeHandler?(): (...args: unknown[]) => void })
-  .getUpgradeHandler?.() ?? null
+const app    = next({ dev, port })
+const handle = app.getRequestHandler()
 
 // ── Handler WebSocket STT ─────────────────────────────────────────────────────
 
@@ -109,6 +106,10 @@ void app.prepare().catch((err: unknown) => {
   console.error('✗ Next.js failed to prepare:', err)
   process.exit(1)
 }).then(() => {
+  // getUpgradeHandler() doit être appelé APRÈS prepare()
+  const handleUpgrade = (app as unknown as { getUpgradeHandler?(): (...args: unknown[]) => void })
+    .getUpgradeHandler?.() ?? null
+
   const httpServer = createServer((req, res) => {
     const parsedUrl = parse(req.url ?? '/', true)
     handle(req, res, parsedUrl)
