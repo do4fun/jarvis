@@ -1,46 +1,27 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AvatarKitPlayer — Rendu canvas WebGL + contrôles microphone
-//
-// Utilise le SDK officiel @spatialwalk/avatarkit + @spatialwalk/avatarkit-rtc.
-// L'avatar est rendu côté serveur SpatialReal et reçu via WebRTC (LiveKit).
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { Mic, MicOff, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useSpatialRealAvatar } from '@/hooks/useSpatialRealAvatar'
 
 interface AvatarKitPlayerProps {
-  appId:     string
-  avatarId:  string
   className?: string
+  /** Callback appelé une fois l'avatar connecté — passe la fonction speak() au parent */
+  onReady?: (speak: (pcm: ArrayBuffer) => Promise<void>) => void
 }
 
-export default function AvatarKitPlayer({ appId, avatarId, className = '' }: AvatarKitPlayerProps) {
-  const {
-    status,
-    error,
-    downloadProgress,
-    isPublishingMic,
-    startPublishingMic,
-    stopPublishingMic,
-    reconnect,
-    containerRef,
-  } = useSpatialRealAvatar({ appId, avatarId })
+export default function AvatarKitPlayer({ className = '', onReady }: AvatarKitPlayerProps) {
+  const { status, error, downloadProgress, speak, reconnect, containerRef } =
+    useSpatialRealAvatar()
+
+  // Notifier le parent dès que l'avatar est connecté
+  if (status === 'connected' && onReady) {
+    onReady(speak)
+  }
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
 
-      {/* ── Canvas WebGL — rempli par AvatarView ───────────────────────────── */}
-      {/*
-        IMPORTANT anti-flou : `transition-opacity` est sur le div EXTÉRIEUR,
-        jamais sur le div qui contient le canvas WebGL (containerRef).
-        Appliquer une transition CSS directement sur le container du canvas
-        force le navigateur à compositer la texture GPU sur un layer dédié
-        avec interpolation sub-pixel → flou pendant et après la transition.
-        Le div interne (containerRef) est inerte côté CSS : aucun transform,
-        aucune opacity, aucun filter — seul AvatarView y touche.
-      */}
+      {/* Canvas WebGL */}
       <div
         className={`h-full w-full transition-opacity duration-500 ${
           status === 'connected' ? 'opacity-100' : 'opacity-0'
@@ -49,7 +30,7 @@ export default function AvatarKitPlayer({ appId, avatarId, className = '' }: Ava
         <div ref={containerRef} className="h-full w-full min-h-100" />
       </div>
 
-      {/* ── États de chargement / connexion ───────────────────────────────── */}
+      {/* Chargement */}
       {(status === 'idle' || status === 'initializing' || status === 'loading' || status === 'connecting') && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
           <div className="relative h-16 w-16">
@@ -57,26 +38,24 @@ export default function AvatarKitPlayer({ appId, avatarId, className = '' }: Ava
             <div className="absolute inset-2 animate-spin rounded-full border-2 border-transparent border-t-blue-400" />
             <div className="absolute inset-4 rounded-full bg-blue-600/40" />
           </div>
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-sm font-medium tracking-widest uppercase text-blue-300/80">
-              {status === 'initializing' && 'Initialisation SDK…'}
-              {status === 'loading'      && `Chargement avatar… ${downloadProgress}%`}
-              {status === 'connecting'   && 'Connexion LiveKit…'}
-              {status === 'idle'         && 'En attente'}
-            </p>
-            {status === 'loading' && downloadProgress > 0 && (
-              <div className="h-1 w-40 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-blue-400 transition-all duration-300"
-                  style={{ width: `${downloadProgress}%` }}
-                />
-              </div>
-            )}
-          </div>
+          <p className="text-sm font-medium tracking-widest uppercase text-blue-300/80">
+            {status === 'initializing' && 'Initialisation SDK…'}
+            {status === 'loading'      && `Chargement avatar… ${downloadProgress}%`}
+            {status === 'connecting'   && 'Connexion SpatialReal…'}
+            {status === 'idle'         && 'En attente'}
+          </p>
+          {status === 'loading' && downloadProgress > 0 && (
+            <div className="h-1 w-40 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-blue-400 transition-all duration-300"
+                style={{ width: `${downloadProgress}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Erreur ────────────────────────────────────────────────────────── */}
+      {/* Erreur */}
       {status === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0f0f1a]">
           <div className="h-12 w-12 rounded-full bg-red-900/40 flex items-center justify-center">
@@ -93,24 +72,6 @@ export default function AvatarKitPlayer({ appId, avatarId, className = '' }: Ava
             Reconnecter
           </button>
         </div>
-      )}
-
-      {/* ── Bouton microphone (affiché quand connecté) ─────────────────────── */}
-      {status === 'connected' && (
-        <button
-          onClick={() => void (isPublishingMic ? stopPublishingMic() : startPublishingMic())}
-          className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
-            isPublishingMic
-              ? 'border-blue-400/60 bg-blue-500/20 text-blue-300 shadow-lg shadow-blue-500/20'
-              : 'border-white/20 bg-black/40 text-white/50 hover:text-white/80'
-          }`}
-          aria-label={isPublishingMic ? 'Couper le microphone' : 'Activer le microphone'}
-        >
-          {isPublishingMic
-            ? <Mic    className="h-4 w-4" />
-            : <MicOff className="h-4 w-4" />
-          }
-        </button>
       )}
     </div>
   )

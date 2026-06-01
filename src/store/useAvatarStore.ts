@@ -9,6 +9,11 @@ interface AvatarState {
   isSpeaking: boolean
   isThinking: boolean
 
+  // ── SDK mode speak callback ─────────────────────────────────────────────────
+  /** Fourni par AvatarKitPlayer une fois connecté — null si non prêt */
+  speak: ((pcm: ArrayBuffer) => Promise<void>) | null
+  setSpeak: (fn: (pcm: ArrayBuffer) => Promise<void>) => void
+
   // ── Actions ─────────────────────────────────────────────────────────────────
   setAnimation: (cmd: AnimationCommand) => void
   setEmotion: (emotion: EmotionName) => void
@@ -29,11 +34,13 @@ const INITIAL_STATE = {
   environment: null,
   isSpeaking: false,
   isThinking: false,
+  speak: null,
 }
 
 export const useAvatarStore = create<AvatarState>((set) => ({
   ...INITIAL_STATE,
 
+  setSpeak: (fn) => set({ speak: fn }),
   setAnimation: (animation) => set({ animation }),
   setEmotion: (emotion) => set({ emotion }),
   setEnvironment: (environment) => set({ environment }),
