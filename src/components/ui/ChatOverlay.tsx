@@ -119,7 +119,7 @@ export default function ChatOverlay({ characterName = 'Jarvis' }: { characterNam
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-end pb-8">
+    <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-end pb-8">
       <div className="pointer-events-auto w-full flex justify-center">
         <InputBar
           value={input}

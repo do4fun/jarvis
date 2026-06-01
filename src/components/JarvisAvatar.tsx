@@ -181,12 +181,12 @@ export default function JarvisAvatar() {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0f0f1a]">
 
-      {/* Container avatar — identique au demo : div direct sans wrapper */}
-      <div ref={setContainerRef} className="h-full w-full" />
+      {/* Container avatar — z-0 pour rester sous les éléments UI */}
+      <div ref={setContainerRef} className="absolute inset-0 z-0" />
 
       {/* Chargement */}
       {isLoading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
           <div className="relative h-16 w-16">
             <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
             <div className="absolute inset-2 animate-spin rounded-full border-2 border-transparent border-t-blue-400" />
@@ -199,7 +199,7 @@ export default function JarvisAvatar() {
 
       {/* Erreur */}
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
           <p className="text-sm text-red-400">{error}</p>
           <button
             onClick={handleReconnect}
@@ -215,7 +215,7 @@ export default function JarvisAvatar() {
       {!isLoading && !error && (
         <button
           onClick={() => void toggleMic()}
-          className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
+          className={`absolute bottom-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
             micTrack
               ? "border-blue-400/60 bg-blue-500/20 text-blue-300 shadow-lg shadow-blue-500/20"
               : "border-white/20 bg-black/40 text-white/50 hover:text-white/80"

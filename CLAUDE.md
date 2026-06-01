@@ -1,6 +1,6 @@
 ﻿# CLAUDE.md â€” Jarvis
 
-> Mis Ã  jour automatiquement le 2026-05-31 21:44 (branche : dev)
+> Mis Ã  jour automatiquement le 2026-05-31 21:46 (branche : dev)
 
 ## Projet
 
@@ -43,6 +43,8 @@ scripts/               wasm-patch-loader.cjs, update-claude-md.ps1
 ## Commits rÃ©cents
 
 ```
+3c705d4 fix: use client sur page.tsx pour ssr:false dynamic
+4efd65f chore: update CLAUDE.md [auto]
 55ead40 feat: repartir du demo ÔÇö JarvisAvatar avec code avatar identique au demo
 6076939 chore: update CLAUDE.md [auto]
 8f1ecf3 fix: getUpgradeHandler() apr├¿s prepare()
@@ -51,6 +53,4 @@ aac1b31 fix: passer /_next/webpack-hmr au handler Next.js (HMR WebSocket)
 a4cbbaa chore: update CLAUDE.md [auto]
 aee6eb1 fix: onReady dans useEffect + catch erreur server.ts
 dd6ab51 chore: update CLAUDE.md [auto]
-ecb1e87 fix: wasm-patch-loader sur tout le dist/ ÔÇö withAvatarkit ne patchait pas index-*.js (data-URI 1.27Mo)
-8010fda chore: update CLAUDE.md [auto]
 ```
