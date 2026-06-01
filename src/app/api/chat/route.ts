@@ -20,7 +20,6 @@ import { logger } from '@/lib/logger'
 import { activeStreams } from '@/lib/activeStreams'
 import type { AvatarResponse } from '@/types/avatar'
 import type { ChatRequest, SSEEvent } from '@/types/api'
-import { RoomServiceClient, DataPacket_Kind } from 'livekit-server-sdk'
 
 const CTX = '/api/chat'
 
@@ -170,20 +169,6 @@ export async function POST(req: NextRequest) {
 
         emit({ type: 'avatar_complete', response: avatarResponse })
         emit({ type: 'done' })
-
-        // Forwarder le texte à l'agent Python via LiveKit → session.say() → TTS → avatar
-        const livekitUrl    = process.env.LIVEKIT_URL
-        const livekitApiKey = process.env.LIVEKIT_API_KEY
-        const livekitSecret = process.env.LIVEKIT_API_SECRET
-        if (livekitUrl && livekitApiKey && livekitSecret) {
-          const httpUrl = livekitUrl.replace(/^wss?:\/\//, 'https://')
-          const roomSvc = new RoomServiceClient(httpUrl, livekitApiKey, livekitSecret)
-          const payload = new TextEncoder().encode(
-            JSON.stringify({ type: 'jarvis_say', text: avatarResponse.text }),
-          )
-          roomSvc.sendData('jarvis-room', payload, DataPacket_Kind.RELIABLE)
-            .catch((err: unknown) => logger.warn(CTX, '⚠ LiveKit sendData', { err: String(err) }))
-        }
 
         logger.info(CTX, `✓ terminé en ${Date.now() - startMs}ms`)
       } catch (err) {
