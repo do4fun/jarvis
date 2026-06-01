@@ -31,8 +31,11 @@ const dev  = process.env.NODE_ENV !== 'production'
 
 // ── Initialisation Next.js ────────────────────────────────────────────────────
 
-const app    = next({ dev, port })
-const handle = app.getRequestHandler()
+const app           = next({ dev, port })
+const handle        = app.getRequestHandler()
+// getUpgradeHandler gère le WebSocket HMR de Next.js (/_next/webpack-hmr)
+const handleUpgrade = (app as unknown as { getUpgradeHandler?(): (...args: unknown[]) => void })
+  .getUpgradeHandler?.() ?? null
 
 // ── Handler WebSocket STT ─────────────────────────────────────────────────────
 
@@ -121,10 +124,11 @@ void app.prepare().catch((err: unknown) => {
       wss.handleUpgrade(req, socket as import('stream').Duplex, head, (ws) => {
         wss.emit('connection', ws, req)
       })
-    } else {
-      // Rejeter toute autre tentative d'upgrade WebSocket
-      socket.destroy()
+    } else if (handleUpgrade) {
+      // Déléguer /_next/webpack-hmr et autres upgrades Next.js au handler officiel
+      handleUpgrade(req, socket, head)
     }
+    // Ignorer silencieusement les autres upgrades inconnus
   })
 
   wss.on('connection', handleSTTConnection)
